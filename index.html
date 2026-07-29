@@ -1,0 +1,1961 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HR Interview Cockpit</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{
+  --blue:#3454D1; --blue-dark:#1F2A44; --blue-light:#5C7CFA;
+  --bg:#F2F3F5; --card:#FFFFFF; --border:#DDE2E8; --text:#333A40; --muted:#6B7680;
+  --green:#2E9E5B; --yellow:#E9A800; --orange:#E07B00; --red:#D64545;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px}
+.app-header{position:relative;background:#fff;color:var(--text);padding:12px 28px;display:flex;align-items:center;gap:14px;border-top:4px solid var(--blue);border-bottom:1px solid #E2E6EA}
+.app-header h1{font-size:16px;font-weight:700;flex:1;color:var(--blue-dark)}
+.brand img{height:26px;display:block}
+.logo{color:var(--blue);font-weight:800;letter-spacing:1px;font-size:22px}
+.app-header button{background:#fff;border:1.5px solid var(--blue);color:var(--blue);padding:7px 14px;border-radius:3px;cursor:pointer;font-size:13px;font-weight:600}
+.app-header button:hover{background:var(--blue);color:#fff}
+.settings{position:absolute;right:28px;top:100%;background:#fff;border:1px solid var(--border);box-shadow:0 6px 20px rgba(0,0,0,.14);padding:18px;width:360px;z-index:50;display:none;border-radius:3px}
+.settings.open{display:block}
+.steps{display:flex;gap:8px;padding:16px 28px;flex-wrap:wrap}
+.step{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:2px;background:#E8EBEE;color:var(--muted);font-size:13px;font-weight:600;cursor:default}
+.step .num{width:22px;height:22px;border-radius:50%;background:#C6D3DF;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
+.step.active{background:var(--blue);color:#fff}
+.step.active .num{background:rgba(255,255,255,.3)}
+.step.done{background:#D8EEE1;color:var(--green)}
+.step.done .num{background:var(--green)}
+.wrap{max-width:1100px;margin:0 auto;padding:8px 28px 60px}
+.view{display:none}
+.view.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:3px;padding:22px;margin-bottom:18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card h2{font-size:17px;color:var(--blue-dark);margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+input[type=text],input[type=password],select,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:3px;font-size:15px;font-family:inherit;background:#fff;color:var(--text)}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--blue-light);border-color:transparent}
+textarea{resize:vertical}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--blue);color:#fff;border:none;padding:11px 22px;border-radius:3px;font-size:15px;font-weight:600;cursor:pointer}
+.btn:hover{background:#2843A8}
+.btn.secondary{background:#fff;color:var(--blue);border:1.5px solid var(--blue)}
+.btn.secondary:hover{background:#EDF4FA}
+.btn.ghost{background:transparent;color:var(--muted);border:1.5px solid var(--border)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.dropzone{border:2px dashed var(--border);border-radius:3px;padding:22px;text-align:center;color:var(--muted);cursor:pointer;transition:.15s}
+.dropzone.drag{border-color:var(--blue-light);background:#EDF7FC}
+.poolstatus{margin-top:10px;font-size:13px;color:var(--green);font-weight:600}
+.poolstatus.err{color:var(--red)}
+.acc{border:1px solid var(--border);border-radius:3px;background:#fff;margin-bottom:18px}
+.acc-head{display:flex;align-items:center;gap:10px;padding:14px 20px;cursor:pointer;font-weight:700;color:var(--blue-dark);font-size:15px}
+.acc-head .acc-sub{font-weight:400;font-size:12.5px;color:var(--green);flex:1;text-align:right}
+.acc-head .chev{transition:.15s;color:var(--muted);font-size:12px}
+.acc.open .chev{transform:rotate(90deg)}
+.acc-body{display:none;padding:16px 20px 20px;border-top:1px solid var(--border)}
+.acc.open .acc-body{display:block}
+.copilot-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+/* Kalender */
+.calwrap{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:start}
+.cal{width:280px}
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:700;color:var(--blue-dark)}
+.cal-head button{border:1px solid var(--border);background:#fff;width:28px;height:28px;border-radius:3px;cursor:pointer;color:var(--blue)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-grid .dow{font-size:10.5px;font-weight:700;color:var(--muted);text-align:center;padding:4px 0;text-transform:uppercase}
+.cal-day{aspect-ratio:1;border:1px solid transparent;background:#F4F6F8;border-radius:3px;font-size:13px;cursor:pointer;color:var(--text)}
+.cal-day:hover{border-color:var(--blue-light)}
+.cal-day.other{opacity:.3}
+.cal-day.today{border-color:var(--blue);font-weight:700}
+.cal-day.sel{background:var(--blue);color:#fff;font-weight:700}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px}
+.slot{padding:8px 4px;border:1px solid var(--border);background:#fff;border-radius:3px;font-size:13px;cursor:pointer;text-align:center;font-variant-numeric:tabular-nums}
+.slot:hover{border-color:var(--blue-light)}
+.slot.sel{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:700}
+.terminfo{margin-top:12px;font-size:13.5px;font-weight:600;color:var(--green)}
+/* Auswahl */
+.selectlayout{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start}
+.phase-section{margin-bottom:20px}
+.phase-title{font-size:13px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid var(--blue)}
+.cluster{border:1px solid var(--border);border-radius:3px;margin-bottom:10px;overflow:hidden}
+.cluster-head{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;background:#F8FAFC}
+.cluster-head .cdot{width:12px;height:12px;border-radius:50%}
+.cluster-head .cname{font-weight:700;flex:1}
+.cluster-head .ccount{font-size:12px;color:var(--muted)}
+.cluster-body{display:none;border-top:1px solid var(--border)}
+.cluster.open .cluster-body{display:block}
+.qrow{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid #EEF2F6;align-items:flex-start;cursor:pointer}
+.qrow:last-child{border-bottom:none}
+.qrow:hover{background:#F8FAFC}
+.qrow input{margin-top:3px}
+.qrow .qtext{flex:1}
+.qrow .qhint{font-size:12px;color:var(--muted);margin-top:2px}
+.guidelist{list-style:none}
+.guidelist li{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:3px;margin-bottom:6px;font-size:13px;background:#fff}
+.guidelist .gq{flex:1}
+.guidelist .gnum{font-weight:700;color:var(--blue);min-width:20px}
+.mini{border:none;background:#EDF2F7;border-radius:2px;width:26px;height:26px;cursor:pointer;color:var(--muted);font-size:13px}
+.mini:hover{background:var(--blue);color:#fff}
+.badge{display:inline-block;padding:3px 10px;border-radius:2px;font-size:12px;font-weight:700;color:#fff}
+.fachrow{display:flex;gap:8px;margin-bottom:8px}
+.fachrow input{flex:1}
+/* Interview */
+.cockpit-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px}
+.timerbox{display:flex;gap:18px;font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+.timerbox b{color:var(--blue-dark)}
+.phasebar{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+.phasechip{flex:1;min-width:110px;padding:7px 8px;background:#E8EBEE;border-radius:2px;font-size:11px;font-weight:700;color:var(--muted);text-align:center;line-height:1.4}
+.phasechip small{display:block;font-weight:400;font-size:10.5px}
+.phasechip.cur{background:var(--blue);color:#fff}
+.phasechip.done{background:#D8EEE1;color:var(--green)}
+.progress{height:8px;background:#E2E9F0;border-radius:2px;overflow:hidden;margin-bottom:18px}
+.progress div{height:100%;background:linear-gradient(90deg,var(--blue),var(--blue-light));transition:width .3s}
+.qcard{background:var(--card);border:1px solid var(--border);border-radius:3px;border-top:4px solid var(--blue);padding:28px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.qcard .frage{font-size:21px;font-weight:600;line-height:1.4;margin:12px 0 10px}
+.hintbox{background:#FFF8E6;border:1px solid #F0DFA8;border-radius:3px;padding:10px 14px;font-size:13.5px;color:#7A6215;margin-bottom:18px}
+.ratingrow{display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.rate{flex:1;min-width:80px;padding:14px 8px;border:2px solid var(--border);background:#fff;border-radius:3px;cursor:pointer;text-align:center;font-weight:700;font-size:20px;color:var(--muted);transition:.12s}
+.rate small{display:block;font-size:10.5px;font-weight:600;margin-top:4px}
+.rate:hover{border-color:var(--blue-light)}
+.rate.sel{color:#fff;border-color:transparent}
+.rate.sel.r1{background:var(--red)}
+.rate.sel.r2{background:var(--orange)}
+.rate.sel.r3{background:#6BAF3C}
+.rate.sel.r4{background:var(--green)}
+.ankerbox{border:1px solid var(--border);border-radius:3px;margin-bottom:16px;font-size:12.5px}
+.ankerbox .arow{display:flex;gap:10px;padding:7px 12px;border-bottom:1px solid #EEF2F6;color:var(--muted)}
+.ankerbox .arow:last-child{border-bottom:none}
+.ankerbox .anum{font-weight:800;min-width:16px;color:var(--blue)}
+.ankerbox .arow.hl{background:#E9F5FC;color:var(--text)}
+.skipbtn{margin:6px 0 16px;background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:13px}
+.skipbtn.on{color:var(--red);font-weight:700}
+.navrow{display:flex;justify-content:space-between;margin-top:22px}
+.checkitem{display:flex;gap:10px;align-items:center;padding:11px 4px;border-bottom:1px solid #EEF2F6;font-size:15px;cursor:pointer}
+.checkitem input{width:18px;height:18px}
+.checkitem.done{color:var(--muted);text-decoration:line-through}
+/* Zusammenfassung */
+.sumhead{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px}
+.sumhead .kname{font-size:22px;font-weight:700;color:var(--blue-dark)}
+.sumhead .kmeta{color:var(--muted);font-size:14px;margin-top:3px}
+.kpis{display:flex;gap:14px;margin:16px 0;flex-wrap:wrap}
+.kpi{background:#E9F5FC;border-radius:3px;padding:12px 18px;text-align:center;flex:1;min-width:120px}
+.kpi b{display:block;font-size:22px;color:var(--blue)}
+.kpi span{font-size:12px;color:var(--muted);font-weight:600}
+.sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.radarbox{position:relative;height:340px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{background:var(--blue);color:#fff;text-align:left;padding:9px 12px;font-size:12.5px}
+td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:nth-child(even) td{background:#F8FAFC}
+.chip{display:inline-block;min-width:30px;text-align:center;padding:3px 8px;border-radius:2px;color:#fff;font-weight:700;font-size:13px}
+.chip.c1{background:var(--red)}
+.chip.c2{background:var(--orange)}
+.chip.c3{background:#6BAF3C}
+.chip.c4{background:var(--green)}
+.chip.cx{background:#B5C2CE}
+.qnote{font-size:12.5px;color:var(--muted);margin-top:3px;font-style:italic}
+/* Vergleich */
+.complist{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.comptag{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:2px;color:#fff;font-size:13px;font-weight:600}
+.comptag button{background:none;border:none;color:#fff;cursor:pointer;font-size:14px}
+.hint-empty{color:var(--muted);font-size:13.5px;padding:14px 0}
+#printLeitfaden{display:none}
+@media print{
+  body{background:#fff}
+  .app-header,.steps,.no-print{display:none!important}
+  .wrap{max-width:100%;padding:0}
+  .card{border:none;box-shadow:none;padding:10px 0;break-inside:avoid}
+  body[data-printmode=leitfaden] .view{display:none!important}
+  body[data-printmode=leitfaden] #printLeitfaden{display:block}
+  #printLeitfaden h1{color:#3454D1;font-size:20px;margin-bottom:4px}
+  #printLeitfaden .pmeta{color:#555;font-size:13px;margin-bottom:16px}
+  #printLeitfaden .pph{font-size:13px;font-weight:800;color:#3454D1;text-transform:uppercase;margin:18px 0 8px;border-bottom:2px solid #3454D1;padding-bottom:3px}
+  #printLeitfaden .pq{margin-bottom:14px;break-inside:avoid;border-bottom:1px solid #ccc;padding-bottom:30px}
+  #printLeitfaden .pq b{font-size:14px}
+  #printLeitfaden .ph{font-size:11.5px;color:#777}
+  textarea{border:none;padding:0}
+}
+@media(max-width:820px){.grid2,.selectlayout,.sumgrid,.copilot-grid,.calwrap{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>HR Interview Cockpit <span style="opacity:.55;font-weight:400;font-size:12px" data-i18n="proto">Prototyp</span></h1>
+  <button onclick="toggleLang()" id="langBtn">EN</button>
+  <button onclick="goStellen()" data-i18n="stellenBtn">Stellen</button>
+  <button onclick="resetAll()" data-i18n="newBtn">Neues Interview</button>
+  <button onclick="syncNow()" title="Synchronisieren">&#10227; <span id="syncInfo" style="font-weight:400;font-size:11.5px"></span></button>
+  <button onclick="document.getElementById('settings').classList.toggle('open')" title="Einstellungen">&#9881;</button>
+  <div class="settings" id="settings">
+    <label>Claude API-Key</label>
+    <input type="password" id="apiKey" placeholder="sk-ant-&hellip;">
+    <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5" data-i18n="keyHint">Wird nur lokal im Browser gespeichert. Ohne Key l&auml;uft der KI-Copilot im Demo-Modus. Modell: Claude Sonnet 5.</div>
+  </div>
+</header>
+
+<nav class="steps" id="stepsNav"></nav>
+
+<div class="wrap">
+
+<!-- ======== STELLEN-ÜBERSICHT ======== -->
+<section class="view" id="view-stellen">
+  <div id="connectBar"></div>
+  <div class="card">
+    <h2 data-i18n="stellenTitle">Stellen-&Uuml;bersicht</h2>
+    <div id="stellenList"></div>
+    <div class="btnrow" style="margin-top:14px">
+      <button class="btn" onclick="newStelle()" data-i18n="newStelleBtn">+ Neue Stelle anlegen</button>
+      <button class="btn ghost" onclick="ctx=null;gotoStep(0)" data-i18n="directIv">Direkt-Interview ohne Stelle</button>
+      <button class="btn secondary" onclick="loadDemoCandidate()" data-i18n="demoBtn">&#9654; Beispiel-Auswertung ansehen</button>
+    </div>
+  </div>
+  <div class="acc" id="accArchiv">
+    <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+      <span class="chev">&#9654;</span> <span data-i18n="archT">Interview-Archiv</span> <span class="acc-sub" id="archSub" style="color:var(--muted)"></span>
+    </div>
+    <div class="acc-body">
+      <div class="btnrow" style="margin-bottom:10px">
+        <button class="btn secondary" onclick="scanTeamFolder()" data-i18n="teamScan">&#128193; Team-Ordner durchsuchen</button>
+        <button class="btn ghost" onclick="document.getElementById('fileJson').click()" data-i18n="jsonLoad">Einzelne JSONs laden</button>
+        <input type="file" id="fileJson" accept=".json" multiple style="display:none">
+      </div>
+      <div id="teamBox"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== ZWEITGESPRÄCH ======== -->
+<section class="view" id="view-zweit">
+  <div class="card">
+    <h2 id="zwTitle"></h2>
+    <div id="zweitBody"></div>
+  </div>
+  <div class="btnrow">
+    <button class="btn ghost" onclick="goStellen()">&larr; <span data-i18n="decBack">Zur&uuml;ck zu den Stellen</span></button>
+  </div>
+</section>
+
+<!-- ======== ENTSCHEIDUNG ======== -->
+<section class="view" id="view-decide">
+  <div class="card">
+    <h2 id="decTitle"></h2>
+    <div class="sumgrid">
+      <div><div class="radarbox"><canvas id="decChart"></canvas></div></div>
+      <div id="decTable"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2 data-i18n="decH">Entscheidung treffen</h2>
+    <div id="decPick" style="margin-bottom:14px"></div>
+    <label data-i18n="decBegrL">Sachliche Begr&uuml;ndung (AGG-Dokumentation)</label>
+    <textarea id="decBegr" rows="5"></textarea>
+    <div class="btnrow" style="margin:8px 0 14px">
+      <button class="btn secondary" id="decDraftBtn" onclick="decDraft()" data-i18n="decDraftT">&#10024; KI-Begr&uuml;ndungsentwurf</button>
+      <span id="decDraftStatus" style="font-size:12.5px;color:var(--muted);align-self:center"></span>
+    </div>
+    <div style="max-width:340px;margin-bottom:14px"><label data-i18n="decWhoL">Entscheider</label><input type="text" id="decWho"></div>
+    <div class="btnrow">
+      <button class="btn" onclick="saveDecision()" data-i18n="decSaveT">Entscheidung speichern</button>
+      <button class="btn ghost" onclick="goStellen()" data-i18n="decBack">&larr; Zur&uuml;ck zu den Stellen</button>
+    </div>
+    <div id="decStatus" style="margin-top:10px;font-size:13.5px;color:var(--green);font-weight:600"></div>
+  </div>
+  <div class="card no-print" id="decMailCard" style="display:none">
+    <h2>&#9993; <span data-i18n="brT">BR-Anh&ouml;rung (&sect;99 BetrVG)</span></h2>
+    <div style="max-width:420px;margin-bottom:10px">
+      <label data-i18n="lRecipName">Name (optional)</label>
+      <input type="text" id="decMailTo" placeholder="z.B. Herr Weber">
+    </div>
+    <div class="btnrow" style="margin-bottom:10px">
+      <button class="btn secondary" id="decMailBtn" onclick="generateBRMail()">&#10024; <span data-i18n="brGen">BR-Mail erstellen</span></button>
+      <button class="btn ghost" onclick="exportBRListe(decSid)">BR-Liste (Excel)</button>
+      <span id="decMailStatus" style="font-size:12.5px;color:var(--muted);align-self:center"></span>
+    </div>
+    <textarea id="decMailDraft" rows="10"></textarea>
+    <div class="btnrow" style="margin-top:10px">
+      <button class="btn" onclick="openBRMail()" data-i18n="mailOpen">In E-Mail-Programm &ouml;ffnen</button>
+      <button class="btn secondary" onclick="copyBRMail()" data-i18n="mailCopy">Kopieren</button>
+    </div>
+  </div>
+</section>
+
+<!-- ======== SCHRITT 1: VORBEREITUNG ======== -->
+<section class="view" id="view-setup">
+  <div class="card">
+    <h2 data-i18n="candTitle">Kandidat &amp; Interviewdaten</h2>
+    <div class="grid2">
+      <div><label data-i18n="lName">Name Kandidat/in *</label><input type="text" id="kName" placeholder="z.B. Anna Beispiel"></div>
+      <div><label data-i18n="lPos">Position *</label><input type="text" id="kPos" placeholder="z.B. AI Systems Engineer"></div>
+      <div><label data-i18n="lInt">Interviewer</label><input type="text" id="kInt" placeholder=""></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2 data-i18n="termTitle">Termin w&auml;hlen</h2>
+    <div class="calwrap">
+      <div class="cal">
+        <div class="cal-head"><button onclick="calMove(-1)">&#8249;</button><span id="calTitle"></span><button onclick="calMove(1)">&#8250;</button></div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <div>
+        <label data-i18n="lTime">Uhrzeit</label>
+        <div class="slots" id="slotGrid"></div>
+        <div style="margin-top:14px;max-width:220px"><label data-i18n="lDur">Dauer</label>
+          <select id="kDauer" onchange="updateTermInfo()">
+            <option value="45">45 Min.</option>
+            <option value="60" selected>60 Min.</option>
+            <option value="75">75 Min.</option>
+            <option value="90">90 Min.</option>
+          </select>
+        </div>
+        <div class="terminfo" id="termInfo"></div>
+      </div>
+    </div>
+  </div>
+  <div class="acc" id="accPool">
+    <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+      <span class="chev">&#9654;</span> <span data-i18n="poolTitle">Fragenpool</span> <span class="acc-sub" id="poolSub"></span>
+    </div>
+    <div class="acc-body">
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('fileXlsx').click()">
+        <b data-i18n="dropB">Excel-Fragenpool hier ablegen</b> <span data-i18n="dropT">oder klicken zum Ausw&auml;hlen</span><br>
+        <span style="font-size:12.5px" data-i18n="dropCols">Spalten: ID, Phase, Cluster, Frage, Anker 1&ndash;4, Geeignet f&uuml;r</span>
+      </div>
+      <input type="file" id="fileXlsx" accept=".xlsx,.xls" style="display:none">
+      <div class="poolstatus" id="poolStatus"></div>
+    </div>
+  </div>
+  <div class="acc" id="accAi">
+    <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+      <span class="chev">&#9654;</span> &#10024; <span data-i18n="aiTitle">KI-Copilot</span> <span class="acc-sub" id="aiSub" style="color:var(--muted)"></span>
+    </div>
+    <div class="acc-body">
+    <div class="copilot-grid">
+      <div>
+        <label data-i18n="lAd">Stellenanzeige</label>
+        <textarea id="jobAd" rows="9"></textarea>
+        <div class="btnrow" style="margin-top:8px">
+          <button class="btn secondary" onclick="loadExampleAd()" data-i18n="exBtn">Beispiel: fiktive Stellenanzeige</button>
+        </div>
+      </div>
+      <div>
+        <label data-i18n="lCv">Lebenslauf (optional)</label>
+        <textarea id="cvText" rows="9"></textarea>
+        <div class="btnrow" style="margin-top:8px">
+          <button class="btn secondary" onclick="document.getElementById('fileCv').click()" data-i18n="cvBtn">CV-PDF hochladen</button>
+          <span id="cvStatus" style="font-size:12.5px;color:var(--muted);align-self:center"></span>
+        </div>
+        <input type="file" id="fileCv" accept=".pdf" style="display:none">
+      </div>
+    </div>
+    <div class="btnrow" style="margin-top:14px">
+      <button class="btn" id="aiBtn" onclick="analyzeAd()" data-i18n="aiGo">&#10024; Fragen vorschlagen</button>
+      <span style="font-size:12px;color:var(--muted);align-self:center" data-i18n="aiHint">Ohne API-Key: Demo-Modus &middot; Key unter &#9881; oben rechts</span>
+    </div>
+    <div id="aiStatus" style="margin-top:10px;font-size:13.5px;color:var(--muted)"></div>
+    <div id="aiResult" style="margin-top:6px"></div>
+    </div>
+  </div>
+  <div class="btnrow">
+    <button class="btn" onclick="gotoStep(1)" data-i18n="next1">Weiter zur Fragenauswahl &rarr;</button>
+  </div>
+</section>
+
+<!-- ======== SCHRITT 2: AUSWAHL ======== -->
+<section class="view" id="view-select">
+  <div class="selectlayout">
+    <div>
+      <div class="card">
+        <h2 style="display:flex;align-items:center;gap:12px"><span data-i18n="selTitle">Fragen ausw&auml;hlen</span></h2>
+        <div id="tplBar" style="margin-bottom:16px"></div>
+        <div id="clusterList"></div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="fachTitle">Fachliche Kompetenzen &ndash; Freitextfragen</h2>
+        <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px" data-i18n="fachSub">Fachfragen vom Fachbereich oder aus der CV-Analyse &ndash; werden im Interview mit 1&ndash;4 bewertet.</div>
+        <div id="fachList"></div>
+        <button class="btn secondary" onclick="addFach()" data-i18n="fachAdd">+ Frage hinzuf&uuml;gen</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2><span data-i18n="guideTitle">Ihr Leitfaden</span> (<span id="guideCount">0</span>)</h2>
+      <div id="planPreview" style="font-size:12.5px;color:var(--muted);margin-bottom:10px"></div>
+      <ul class="guidelist" id="guideList"></ul>
+      <div class="hint-empty" id="guideEmpty" data-i18n="guideEmpty">Noch keine Fragen ausgew&auml;hlt.</div>
+      <div class="btnrow">
+        <button class="btn secondary" onclick="printLeitfaden()" data-i18n="printG">&#128424; Leitfaden als PDF</button>
+        <button class="btn" id="startBtn" onclick="startInterview()" data-i18n="startIv">Interview starten &rarr;</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== SCHRITT 3: INTERVIEW ======== -->
+<section class="view" id="view-interview">
+  <div class="cockpit-top">
+    <div><b id="ivKandidat" style="font-size:17px;color:var(--blue-dark)"></b> <span id="ivPosition" style="color:var(--muted)"></span></div>
+    <div class="timerbox"><span data-i18n="tPlan">Plan</span> <b id="tPlanEnd"></b> &nbsp;|&nbsp; <span data-i18n="tTotal">Gesamt</span> <b id="tGesamt">0:00</b></div>
+  </div>
+  <div class="phasebar" id="phaseBar"></div>
+  <div class="progress"><div id="progBar" style="width:0%"></div></div>
+  <div class="card" id="profilBox" style="display:none;padding:14px 18px"></div>
+  <div class="qcard" id="itemCard"></div>
+</section>
+
+<!-- ======== SCHRITT 4: ZUSAMMENFASSUNG ======== -->
+<section class="view" id="view-summary">
+  <div class="card">
+    <div class="sumhead">
+      <div>
+        <div class="kname" id="sName"></div>
+        <div class="kmeta" id="sMeta"></div>
+      </div>
+      <span class="logo" style="font-size:16px">HR COCKPIT</span>
+    </div>
+    <div class="kpis" id="sKpis"></div>
+  </div>
+  <div class="sumgrid">
+    <div class="card"><h2 data-i18n="radarTitle">Kompetenz-Radar</h2><div class="radarbox"><canvas id="radarChart"></canvas></div></div>
+    <div class="card"><h2 data-i18n="clusterTitle">Bewertung nach Cluster</h2><table id="sClusterTable"></table></div>
+  </div>
+  <div class="card"><h2 data-i18n="rahmenTitle">Rahmenbedingungen</h2><table id="sRahmenTable"></table></div>
+  <div class="card"><h2 data-i18n="detailTitle">Fragen im Detail</h2><table id="sQTable"></table></div>
+  <div class="card">
+    <h2 data-i18n="eindruckTitle">Gesamteindruck &amp; Empfehlung</h2>
+    <div class="grid2">
+      <div><label data-i18n="lEindruck">Gesamteindruck</label><textarea id="sEindruck" rows="4"></textarea>
+        <div class="btnrow" style="margin-top:8px"><button class="btn secondary" id="draftBtn" onclick="generateReport()" data-i18n="draftBtn">&#10024; KI-Berichtsentwurf erstellen</button></div>
+        <div id="draftStatus" style="font-size:12.5px;color:var(--muted);margin-top:6px"></div>
+      </div>
+      <div><label data-i18n="lEmpf">Empfehlung</label>
+        <select id="sEmpfehlung"></select>
+        <div style="margin-top:12px"><label data-i18n="lChallenge">Offene Themen f&uuml;r das Zweitgespr&auml;ch</label>
+        <textarea id="sChallenge" rows="3" placeholder="Was soll im Zweitgespr&auml;ch vertieft oder abgepr&uuml;ft werden?"></textarea></div>
+      </div>
+    </div>
+  </div>
+  <div class="btnrow no-print">
+    <button class="btn" onclick="printSummary()" data-i18n="pdfBtn">&#128424; Bericht als PDF</button>
+    <button class="btn secondary" onclick="exportWord()" data-i18n="wordBtn">Word exportieren</button>
+    <button class="btn secondary" onclick="exportJson()" data-i18n="jsonBtn">&#128190; JSON herunterladen</button>
+    <button class="btn secondary" onclick="chooseFolder()" data-i18n="folderBtn">&#128193; Speicherordner w&auml;hlen&hellip;</button>
+    <button class="btn" onclick="gotoStep(4)" data-i18n="next4">Weiter: E-Mail &amp; Abschluss &rarr;</button>
+  </div>
+  <div class="no-print" id="autosaveInfo" style="font-size:13px;color:var(--green);font-weight:600;margin-top:10px"></div>
+</section>
+
+<!-- ======== SCHRITT 5: ABSCHLUSS ERSTGESPRÄCH ======== -->
+<section class="view" id="view-mail">
+  <div class="card">
+    <h2><span data-i18n="wrapT">Abschluss Erstgespr&auml;ch</span> <span id="mailCtx" style="font-weight:400;font-size:12.5px;color:var(--muted)"></span></h2>
+    <div class="hintbox" data-i18n="wrapInfo">&#10003; Das Erstgespr&auml;ch ist dokumentiert und gespeichert. So geht es weiter: Zweitgespr&auml;ch f&uuml;hren &rarr; Vergleich &amp; Entscheidung in der Stelle &rarr; erst danach die BR-Anh&ouml;rung (direkt aus der Entscheidungsansicht).</div>
+    <div class="btnrow">
+      <button class="btn" id="wrapZweitBtn" onclick="if(ctx)goZweit(ctx.stelleId,ctx.kandId)" data-i18n="wrapZweit">Zweitgespr&auml;ch vorbereiten &rarr;</button>
+      <button class="btn secondary" onclick="goStellen()" data-i18n="toStellen">Zur Stellen-&Uuml;bersicht</button>
+    </div>
+  </div>
+  <div class="card no-print">
+    <h2>&#9993; <span data-i18n="mailTitle">Feedback an den Hiring Manager (optional)</span></h2>
+    <div style="max-width:420px;margin-bottom:10px">
+      <label data-i18n="lRecipName">Name (optional)</label>
+      <input type="text" id="mailTo">
+    </div>
+    <div class="btnrow" style="margin-bottom:10px">
+      <button class="btn secondary" id="mailBtn" onclick="generateMail()" data-i18n="mailGen">&#10024; E-Mail-Entwurf erstellen</button>
+      <span id="mailStatus" style="font-size:12.5px;color:var(--muted);align-self:center"></span>
+    </div>
+    <textarea id="mailDraft" rows="10"></textarea>
+    <div class="btnrow" style="margin-top:10px">
+      <button class="btn" onclick="openMail()" data-i18n="mailOpen">In E-Mail-Programm &ouml;ffnen</button>
+      <button class="btn secondary" onclick="copyMail()" data-i18n="mailCopy">Kopieren</button>
+    </div>
+  </div>
+  <div class="btnrow">
+    <button class="btn ghost" onclick="gotoStep(3)" data-i18n="backSum">&larr; Zur&uuml;ck zur Zusammenfassung</button>
+  </div>
+</section>
+
+</div>
+<div id="printLeitfaden"></div>
+
+<script>
+/* ================= Sprache ================= */
+const AI_MODEL="claude-sonnet-5";
+let lang="de";
+const L={
+de:{proto:"Prototyp",stellenBtn:"Stellen",stellenTitle:"Stellen-Übersicht",newStelleBtn:"+ Neue Stelle anlegen",directIv:"Direkt-Interview ohne Stelle",demoBtn:"&#9654; Beispiel-Auswertung ansehen",decH:"Entscheidung treffen",decBegrL:"Sachliche Begründung (AGG-Dokumentation)",decDraftT:"&#10024; KI-Begründungsentwurf",decWhoL:"Entscheider",decSaveT:"Entscheidung speichern",decBack:"&larr; Zurück zu den Stellen",compareBtn:"&#9878; Kandidatenvergleich",newBtn:"Neues Interview",keyHint:"Wird nur lokal im Browser gespeichert. Ohne Key läuft der KI-Copilot im Demo-Modus. Modell: Claude Sonnet 5.",
+concBtn:"&#8505; Kompetenzmodell",lChallenge:"Offene Themen für das Zweitgespräch",archT:"Interview-Archiv",wrapT:"Abschluss Erstgespräch",wrapInfo:"&#10003; Das Erstgespräch ist dokumentiert und gespeichert. So geht es weiter: Zweitgespräch führen &rarr; Vergleich &amp; Entscheidung in der Stelle &rarr; erst danach die BR-Anhörung (direkt aus der Entscheidungsansicht).",wrapZweit:"Zweitgespräch vorbereiten &rarr;",toStellen:"Zur Stellen-Übersicht",brT:"BR-Anhörung (§99 BetrVG)",brGen:"BR-Mail erstellen",backSel:"&larr; Zurück zur Fragenauswahl",printConc:"&#128424; Als PDF drucken",ratingLogic:"Kompakte Bewertungslogik (1–4)",stufe:"Stufe",kern:"Kernmerkmal",bl1:"Überforderung, starres Denken",bl2:"Verständnis mit Hilfestellung, langsame Anpassung",bl3:"Aktive Strukturierung und Anpassung",bl4:"Proaktives, vernetztes und reflektiertes Denken",
+candTitle:"Kandidat &amp; Interviewdaten",lName:"Name Kandidat/in *",lPos:"Position *",lInt:"Interviewer",
+termTitle:"Termin wählen",lTime:"Uhrzeit",lDur:"Dauer",poolTitle:"Fragenpool",dropB:"Excel-Fragenpool hier ablegen",dropT:"oder klicken zum Auswählen",dropCols:"Spalten: ID, Phase, Cluster, Frage, Anker 1–4, Geeignet für",
+aiTitle:"KI-Copilot",lAd:"Stellenanzeige",lCv:"Lebenslauf (optional)",exBtn:"Beispiel: fiktive Stellenanzeige",cvBtn:"CV-PDF hochladen",aiGo:"&#10024; Fragen vorschlagen",aiHint:"Ohne API-Key: Demo-Modus · Key unter &#9881; oben rechts",
+next1:"Weiter zur Fragenauswahl &rarr;",selTitle:"Fragen auswählen",fachTitle:"Fachliche Kompetenzen – Freitextfragen",fachSub:"Fachfragen vom Fachbereich oder aus der CV-Analyse – werden im Interview mit 1–4 bewertet.",fachAdd:"+ Frage hinzufügen",
+guideTitle:"Ihr Leitfaden",guideEmpty:"Noch keine Fragen ausgewählt.",printG:"&#128424; Leitfaden als PDF",startIv:"Interview starten &rarr;",
+tPlan:"Plan bis",tTotal:"Gesamt",radarTitle:"Kompetenz-Radar",clusterTitle:"Bewertung nach Cluster",rahmenTitle:"Rahmenbedingungen",detailTitle:"Fragen im Detail",eindruckTitle:"Gesamteindruck &amp; Empfehlung",lEindruck:"Gesamteindruck",lEmpf:"Empfehlung",
+draftBtn:"&#10024; KI-Berichtsentwurf erstellen",pdfBtn:"&#128424; Bericht als PDF",wordBtn:"Word exportieren",jsonBtn:"&#128190; JSON herunterladen",folderBtn:"&#128193; Speicherordner wählen…",toCompBtn:"Zum Vergleich hinzufügen",next4:"Weiter: E-Mail &amp; Abschluss &rarr;",
+mailTitle:"Feedback an den Hiring Manager (optional)",lRecip:"Empfänger",optBr:"Betriebsrat – Zustimmung zur Einstellung (§99 BetrVG)",optHm:"Hiring Manager – Interview-Feedback",lRecipName:"Name (optional)",mailGen:"&#10024; E-Mail-Entwurf erstellen",mailOpen:"In E-Mail-Programm öffnen",mailCopy:"Kopieren",backSum:"&larr; Zurück zur Zusammenfassung",finishAll:"Interview abschließen &amp; neues starten",
+compTitle:"Kandidatenvergleich",teamScan:"&#128193; Team-Ordner durchsuchen",jsonLoad:"Einzelne JSONs laden",compPdf:"&#128424; Vergleich als PDF",overlayTitle:"Radar-Overlay",compTable:"Vergleichstabelle",compEmpty:"Noch keine Interviews geladen.",
+steps:["Vorbereitung","Fragenauswahl","Erstgespräch","Zusammenfassung","Abschluss"],
+phase_start:"Start & Begrüßung",phase_cv:"CV & Motivation",phase_fach:"Fachliche Kompetenzen",phase_diag:"Diagnostik & Kernkompetenzen",phase_rahmen:"Offene Fragen & Rahmenbedingungen",phase_ende:"Abschluss & Ausblick",
+check_start:["Begrüßung & Smalltalk","Vorstellung der Interviewer & des Ablaufs","Agenda und Zeitrahmen erklären","Hinweis auf Notizen & Vertraulichkeit"],
+check_ende:["Fragen des Kandidaten beantworten","Nächste Schritte & Timeline erläutern","Feedback-Zeitpunkt nennen","Dank & Verabschiedung"],
+rf_startdatum:"Startdatum / Kündigungsfrist",rf_gehalt:"Gehaltsvorstellung",rf_arbeitszeit:"Gewünschte Arbeitszeit",rf_visum:"Arbeitserlaubnis / Visum",rf_verfuegbar:"Zeitliche Verfügbarkeit / Bewerbungssituation",
+rate1:"unzureichend",rate2:"grundlegend",rate3:"gut",rate4:"exzellent",anchorsT:"Bewertungsanker",skipQ:"Frage überspringen",unskipQ:"Übersprungen – wieder aufnehmen",notes:"Notizen",back:"&larr; Zurück",nextQ:"Weiter &rarr;",finishIv:"Interview abschließen ✓",qOf:"von",
+empf:["– bitte wählen –","Sehr geeignet – Angebot empfohlen","Geeignet – Zweitgespräch empfohlen","Bedingt geeignet","Nicht geeignet"],
+kAvg:"Ø Bewertung (1–4)",kRated:"Fragen bewertet",kSkip:"übersprungen",kDur:"Dauer (Min.)",
+tplLabel:"Positions-Vorlagen",tplLoad:"Laden",tplSave:"Auswahl als Vorlage speichern",tplNone:"– noch keine Vorlagen –",
+translateBtn:"Fragen ins Englische übersetzen (KI)",transDone:"✓ Fragen übersetzt",
+frist:"Löschfrist!",fristWarn:"&#9888; Interviews älter als 6 Monate gefunden – Löschfristen (DSGVO/AGG) prüfen.",
+mailSubBr:"Beabsichtigte Einstellung",mailSubHm:"Interview-Feedback",checkHint:"Checkliste – Punkte im Gespräch abhaken",cluster:"Cluster",frage:"Frage",grund:"Begründung",statusW:"Status",verifQ:"Verifikationsfrage",
+applyBtn:"Vorschläge übernehmen &rarr; zur Auswahl",abgleichT:"Abgleich Anforderungen &harr; Lebenslauf",noScoring:"(nur Faktenabgleich, keine Eignungsbewertung)"},
+en:{proto:"Prototype",stellenBtn:"Vacancies",stellenTitle:"Vacancy overview",newStelleBtn:"+ Create new vacancy",directIv:"Direct interview without vacancy",demoBtn:"&#9654; View example evaluation",decH:"Make a decision",decBegrL:"Objective rationale (AGG documentation)",decDraftT:"&#10024; AI rationale draft",decWhoL:"Decision maker",decSaveT:"Save decision",decBack:"&larr; Back to vacancies",compareBtn:"&#9878; Candidate comparison",newBtn:"New interview",keyHint:"Stored locally in your browser only. Without a key the AI copilot runs in demo mode. Model: Claude Sonnet 5.",
+concBtn:"&#8505; Competency model",lChallenge:"Open topics for the second interview",archT:"Interview archive",wrapT:"First interview wrap-up",wrapInfo:"&#10003; The first interview is documented and saved. Next: second interview &rarr; compare &amp; decide in the vacancy &rarr; only then the works-council notification (directly from the decision view).",wrapZweit:"Prepare second interview &rarr;",toStellen:"To vacancy overview",brT:"Works council notification (§99 BetrVG)",brGen:"Create draft",backSel:"&larr; Back to question selection",printConc:"&#128424; Print as PDF",ratingLogic:"Compact rating logic (1–4)",stufe:"Level",kern:"Core characteristic",bl1:"Overwhelmed, rigid thinking",bl2:"Understanding with assistance, slow adaptation",bl3:"Active structuring and adaptation",bl4:"Proactive, networked and reflective thinking",
+candTitle:"Candidate &amp; interview data",lName:"Candidate name *",lPos:"Position *",lInt:"Interviewer",
+termTitle:"Pick a date &amp; time",lTime:"Time",lDur:"Duration",poolTitle:"Question pool",dropB:"Drop Excel question pool here",dropT:"or click to select",dropCols:"Columns: ID, Phase, Cluster, Frage, Anker 1–4, Geeignet für",
+aiTitle:"AI copilot",lAd:"Job posting",lCv:"Resume (optional)",exBtn:"Example: fictional job posting",cvBtn:"Upload CV PDF",aiGo:"&#10024; Suggest questions",aiHint:"No API key: demo mode · key under &#9881; top right",
+next1:"Continue to question selection &rarr;",selTitle:"Select questions",fachTitle:"Technical competencies – free-text questions",fachSub:"Technical questions from the hiring team or CV analysis – rated 1–4 during the interview.",fachAdd:"+ Add question",
+guideTitle:"Your guide",guideEmpty:"No questions selected yet.",printG:"&#128424; Guide as PDF",startIv:"Start interview &rarr;",
+tPlan:"Plan until",tTotal:"Total",radarTitle:"Competency radar",clusterTitle:"Rating by cluster",rahmenTitle:"General conditions",detailTitle:"Questions in detail",eindruckTitle:"Overall impression &amp; recommendation",lEindruck:"Overall impression",lEmpf:"Recommendation",
+draftBtn:"&#10024; Generate AI report draft",pdfBtn:"&#128424; Report as PDF",wordBtn:"Export Word",jsonBtn:"&#128190; Download JSON",folderBtn:"&#128193; Choose save folder…",toCompBtn:"Add to comparison",next4:"Next: e-mail &amp; wrap-up &rarr;",
+mailTitle:"Feedback to the hiring manager (optional)",lRecip:"Recipient",optBr:"Works council – consent to hiring (§99 BetrVG)",optHm:"Hiring manager – interview feedback",lRecipName:"Name (optional)",mailGen:"&#10024; Generate e-mail draft",mailOpen:"Open in e-mail client",mailCopy:"Copy",backSum:"&larr; Back to summary",finishAll:"Finish interview &amp; start new one",
+compTitle:"Candidate comparison",teamScan:"&#128193; Scan team folder",jsonLoad:"Load individual JSONs",compPdf:"&#128424; Comparison as PDF",overlayTitle:"Radar overlay",compTable:"Comparison table",compEmpty:"No interviews loaded yet.",
+steps:["Preparation","Question selection","First interview","Summary","Wrap-up"],
+phase_start:"Start & Welcome",phase_cv:"CV & Motivation",phase_fach:"Technical competencies",phase_diag:"Diagnostics & core competencies",phase_rahmen:"Open questions & general conditions",phase_ende:"Closing & outlook",
+check_start:["Welcome & small talk","Introduce interviewers & process","Explain agenda and timing","Mention note-taking & confidentiality"],
+check_ende:["Answer the candidate's questions","Explain next steps & timeline","State when feedback will follow","Thanks & goodbye"],
+rf_startdatum:"Start date / notice period",rf_gehalt:"Salary expectation",rf_arbeitszeit:"Preferred working hours",rf_visum:"Work permit / visa",rf_verfuegbar:"Availability / application status",
+rate1:"insufficient",rate2:"basic",rate3:"good",rate4:"excellent",anchorsT:"Rating anchors",skipQ:"Skip question",unskipQ:"Skipped – take up again",notes:"Notes",back:"&larr; Back",nextQ:"Next &rarr;",finishIv:"Finish interview ✓",qOf:"of",
+empf:["– please select –","Highly suitable – offer recommended","Suitable – second interview recommended","Partially suitable","Not suitable"],
+kAvg:"Ø rating (1–4)",kRated:"questions rated",kSkip:"skipped",kDur:"duration (min.)",
+tplLabel:"Position templates",tplLoad:"Load",tplSave:"Save selection as template",tplNone:"– no templates yet –",
+translateBtn:"Translate questions to English (AI)",transDone:"✓ Questions translated",
+frist:"Retention!",fristWarn:"&#9888; Interviews older than 6 months found – check retention periods (GDPR).",
+mailSubBr:"Intended hiring",mailSubHm:"Interview feedback",checkHint:"Checklist – tick items during the conversation",cluster:"Cluster",frage:"Question",grund:"Reason",statusW:"Status",verifQ:"Verification question",
+applyBtn:"Apply suggestions &rarr; to selection",abgleichT:"Requirements &harr; resume check",noScoring:"(facts only, no suitability scoring)"}
+};
+function t(k){const v=(L[lang]&&L[lang][k])??L.de[k];return v??k;}
+function applyLang(){
+  document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=t(el.dataset.i18n);});
+  $("langBtn").textContent=lang==="de"?"EN":"DE";
+  document.documentElement.lang=lang;
+  renderSteps();renderCal();renderSlots();updateTermInfo();renderEmpf();
+  if($("view-select").classList.contains("active")){renderClusters();renderTplBar();renderFach();}
+  if($("view-interview").classList.contains("active"))renderItem();
+  if($("view-stellen").classList.contains("active")){renderStellen();renderTeamArchive();}
+  if($("view-decide").classList.contains("active"))renderDecide();
+  updateSyncInfo();
+}
+function toggleLang(){lang=lang==="de"?"en":"de";applyLang();}
+function renderEmpf(){const cur=$("sEmpfehlung").selectedIndex;$("sEmpfehlung").innerHTML=t("empf").map((e,i)=>`<option value="${i===0?"":esc(e)}">${esc(e)}</option>`).join("");if(cur>0)$("sEmpfehlung").selectedIndex=cur;}
+
+/* ================= Phasen & Daten ================= */
+const PHASES=[
+ {id:"start",type:"check",dauer:5},
+ {id:"cv",type:"q",dauer:15},
+ {id:"fach",type:"q",dauer:15},
+ {id:"diag",type:"q",dauer:15},
+ {id:"rahmen",type:"form",dauer:5},
+ {id:"ende",type:"check",dauer:5}];
+const pname=id=>t("phase_"+id);
+const RFIELDS=["startdatum","gehalt","arbeitszeit","visum","verfuegbar"];
+const ANKER_TPL={
+"Führungsstärke":["Vermeidet Führungsverantwortung; kein konkretes Beispiel; delegiert nicht.","Nennt Beispiele, bleibt aber reaktiv; wenig Struktur in der Mitarbeiterführung.","Führt aktiv mit klaren Zielen; konkretes Beispiel mit eigenem Beitrag und Ergebnis.","Gestaltet Führung strategisch; entwickelt Mitarbeiter gezielt; misst Wirkung und lernt daraus."],
+"Kommunikationsfähigkeit":["Unstrukturiert, schwer verständlich; geht nicht auf Zuhörer ein.","Verständlich, aber wenig adressatengerecht; hört teilweise zu.","Klar strukturiert, passt sich dem Gegenüber an; aktives Zuhören erkennbar.","Überzeugt auch in schwierigen Situationen; verbindet Klarheit mit Empathie; holt aktiv Feedback ein."],
+"Problemlösungskompetenz":["Bleibt bei Symptomen; kein systematisches Vorgehen erkennbar.","Löst Probleme, aber eher intuitiv; Priorisierung unklar.","Analysiert strukturiert (Ursachen, Optionen, Abwägung); nachvollziehbares Ergebnis.","Nutzt klar strukturierte Problemlöseverfahren; bezieht Stakeholder ein; überführt Lösungen in Standards."],
+"Teamfähigkeit & Zusammenarbeit":["Stellt Einzelleistung über das Team; Konflikte werden vermieden oder eskaliert.","Arbeitet mit, aber wenig proaktiv; Konfliktverhalten passiv.","Übernimmt aktiv Rollen im Team; löst Konflikte sachlich; teilt Wissen.","Verbindet Teams über Schnittstellen hinweg; baut Vertrauen auf; macht andere besser."],
+"Motivation & Veränderungsbereitschaft":["Bleibt bei Floskeln ('Motivation ist wichtig'), ohne konkrete Beispiele; reagiert nur auf Druck.","Zeigt Interesse, aber wenig Eigeninitiative; Veränderung wird hingenommen.","Belegt Motivation mit konkreten Beispielen; geht Veränderungen aktiv an; lernt kontinuierlich.","Verknüpft eigene Entwicklung klar mit Purpose und Strategie; treibt Veränderung sichtbar voran."]};
+const DEFAULT_POOL=(function(){
+  const d={
+   "Führungsstärke":[["Beschreiben Sie eine Situation, in der Sie ein Team durch eine schwierige Phase geführt haben. Wie sind Sie vorgegangen?","Konkretes Beispiel, eigene Rolle klar, Ergebnis benannt"],["Wie gehen Sie mit einem Teammitglied um, das dauerhaft unterdurchschnittliche Leistung zeigt?","Balance aus Empathie und Konsequenz"],["Erzählen Sie von einer unpopulären Entscheidung, die Sie treffen mussten. Wie haben Sie sie kommuniziert?","Entscheidungsstärke, transparente Kommunikation"],["Wie delegieren Sie Aufgaben und wie stellen Sie sicher, dass sie erledigt werden?","Vertrauen vs. Kontrolle, klare Zielvereinbarung"],["Woran erkennen Sie, dass Ihr Team überlastet ist, und was tun Sie dann?","Aufmerksamkeit für Team, präventives Handeln"]],
+   "Kommunikationsfähigkeit":[["Erklären Sie mir ein komplexes Thema aus Ihrem Fachgebiet so, dass es ein Laie versteht.","Struktur, Verständlichkeit, Anpassung an Zuhörer"],["Beschreiben Sie eine Situation, in der Ihre Botschaft missverstanden wurde. Was haben Sie daraus gelernt?","Selbstreflexion, Lernfähigkeit"],["Wie bereiten Sie sich auf ein schwieriges Gespräch vor, z.B. mit einem unzufriedenen Kunden?","Systematische Vorbereitung, Perspektivwechsel"],["Wie stellen Sie sicher, dass in einem Projekt alle Beteiligten auf dem gleichen Stand sind?","Proaktive Kommunikation, geeignete Kanäle"],["Erzählen Sie von einem Konflikt, den Sie durch ein Gespräch gelöst haben.","Konfliktfähigkeit, aktives Zuhören"]],
+   "Problemlösungskompetenz":[["Beschreiben Sie das komplexeste Problem, das Sie beruflich gelöst haben. Wie sind Sie vorgegangen?","Strukturierte Analyse, Priorisierung, Ergebnis"],["Was tun Sie, wenn Sie eine Entscheidung mit unvollständigen Informationen treffen müssen?","Umgang mit Unsicherheit, Risikoabwägung"],["Erzählen Sie von einer Situation, in der Ihr erster Lösungsansatz gescheitert ist.","Fehlerkultur, Anpassungsfähigkeit"],["Wie priorisieren Sie, wenn mehrere dringende Aufgaben gleichzeitig anstehen?","Priorisierungslogik, Stressresistenz"],["Beschreiben Sie eine Prozessverbesserung, die Sie angestoßen haben. Was war der Auslöser?","Eigeninitiative, messbarer Nutzen"]],
+   "Teamfähigkeit & Zusammenarbeit":[["Welche Rolle nehmen Sie typischerweise in einem Team ein? Geben Sie ein Beispiel.","Selbsteinschätzung, Beispiel deckt sich mit Aussage"],["Erzählen Sie von einer Zusammenarbeit mit einer Person, mit der Sie nicht gut ausgekommen sind.","Professionalität trotz Differenzen"],["Wie gehen Sie damit um, wenn im Team eine Entscheidung fällt, die Sie fachlich für falsch halten?","Konstruktiver Widerspruch, Mittragen"],["Beschreiben Sie ein Projekt, das nur durch abteilungsübergreifende Zusammenarbeit gelungen ist.","Schnittstellenkompetenz"],["Wie unterstützen Sie neue Kolleginnen und Kollegen beim Einstieg?","Hilfsbereitschaft, Wissensteilung"]],
+   "Motivation & Veränderungsbereitschaft":[["Warum braucht der Fachbereich gerade Sie auf der ausgeschriebenen Stelle? Was macht Sie zum besten Kandidaten?","Pitch: Selbstbild, Passung, Vorbereitung"],["Welche Erfahrungen aus Ihrem bisherigen Lebenslauf helfen Ihnen, die Anforderungen der Ausschreibung zu erfüllen?","Bezug CV ↔ Anforderungen"],["Erzählen Sie von der größten beruflichen Veränderung, die Sie erlebt haben. Wie sind Sie damit umgegangen?","Flexibilität, Haltung zu Wandel"],["Wie halten Sie Ihr Fachwissen aktuell?","Lernbereitschaft, konkrete Beispiele"],["Wo sehen Sie sich in drei bis fünf Jahren?","Realistische Ambition, Passung"]]
+  };
+  const out=[];let i=1;
+  for(const [cluster,qs] of Object.entries(d))for(const [frage,hinweis] of qs){
+    const phase=cluster.startsWith("Motivation")?"cv":"diag";
+    out.push({id:"F"+String(i++).padStart(3,"0"),phase,cluster,frage,hinweis,anker:ANKER_TPL[cluster]||[],position:"Alle Positionen"});
+  }
+  return out;
+})();
+const CLUSTER_COLORS=["#3454D1","#2E9E5B","#E9A800","#D64545","#7B4FA6","#00868F","#C25E00","#5A6B7B"];
+
+/* ================= State & Helpers ================= */
+let pool=[...DEFAULT_POOL];
+let selectedIds=new Set();
+let guide=[];
+let fachFragen=[];
+let answers={};
+let checklists={start:[],ende:[]};
+let rahmen={};
+let items=[],itemIdx=0;
+let ivStart=null,qStart=null,tickHandle=null;
+let teamArchiv=[],radarObj=null;
+let _suggest=null,dirHandle=null,asTimer=null;
+window._finished=false;window._profil=[];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const clusterColor=c=>{const cs=[...new Set(pool.map(p=>p.cluster))];return CLUSTER_COLORS[cs.indexOf(c)%CLUSTER_COLORS.length];};
+const fmt=s=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+const qF=q=>lang==="en"&&q.enF?q.enF:q.frage;
+const qH=q=>lang==="en"&&q.enH?q.enH:q.hinweis;
+const timeToMin=s=>{const[a,b]=s.split(":").map(Number);return a*60+b;};
+const minToTime=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+
+/* ================= Navigation ================= */
+let stepIdx=0;
+function renderSteps(){
+  $("stepsNav").innerHTML=t("steps").map((s,i)=>
+    `<div class="step ${i===stepIdx?"active":i<stepIdx?"done":""}"><span class="num">${i<stepIdx?"&#10003;":i+1}</span>${esc(s)}</div>`).join("");
+}
+function show(view){
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  $("view-"+view).classList.add("active");
+}
+const VIEWS=["setup","select","interview","summary","mail"];
+function gotoStep(i){
+  if(i>=1&&(!$("kName").value.trim()||!$("kPos").value.trim())){alert(lang==="de"?"Bitte Name und Position des Kandidaten eingeben.":"Please enter the candidate's name and position.");return;}
+  stepIdx=i;renderSteps();show(VIEWS[i]);
+  if(i===1){renderClusters();renderTplBar();renderFach();renderPlanPreview();}
+  if(i===4){
+    $("mailCtx").textContent=`${$("kName").value} · ${$("kPos").value}`;
+    $("wrapZweitBtn").style.display=ctx?"inline-flex":"none";
+  }
+}
+
+/* ================= Kalender ================= */
+let calY,calM,selDate=null,selTime=null;
+(function(){const n=new Date();calY=n.getFullYear();calM=n.getMonth();})();
+function calMove(d){calM+=d;if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;}renderCal();}
+function renderCal(){
+  const loc=lang==="de"?"de-DE":"en-GB";
+  const first=new Date(calY,calM,1);
+  $("calTitle").textContent=first.toLocaleDateString(loc,{month:"long",year:"numeric"});
+  const dows=lang==="de"?["Mo","Di","Mi","Do","Fr","Sa","So"]:["Mo","Tu","We","Th","Fr","Sa","Su"];
+  let html=dows.map(d=>`<div class="dow">${d}</div>`).join("");
+  const off=(first.getDay()+6)%7;
+  const daysIn=new Date(calY,calM+1,0).getDate();
+  const today=new Date().toISOString().slice(0,10);
+  for(let i=0;i<off;i++)html+=`<div></div>`;
+  for(let d=1;d<=daysIn;d++){
+    const iso=`${calY}-${String(calM+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    html+=`<button class="cal-day ${iso===selDate?"sel":""} ${iso===today?"today":""}" onclick="pickDate('${iso}')">${d}</button>`;
+  }
+  $("calGrid").innerHTML=html;
+}
+function pickDate(iso){selDate=iso;renderCal();updateTermInfo();}
+function renderSlots(){
+  let html="";
+  for(let m=8*60;m<=17*60+30;m+=30){
+    const tm=minToTime(m);
+    html+=`<button class="slot ${tm===selTime?"sel":""}" onclick="pickTime('${tm}')">${tm}</button>`;
+  }
+  $("slotGrid").innerHTML=html;
+}
+function pickTime(tm){selTime=tm;renderSlots();updateTermInfo();}
+function buildPlan(){
+  const total=+($("kDauer").value||60);const f=total/60;
+  let m=timeToMin(selTime||"10:00");
+  return PHASES.map(p=>{const d=Math.max(3,Math.round(p.dauer*f));const s=m;m+=d;return{id:p.id,von:minToTime(s),bis:minToTime(m),dauer:d};});
+}
+function updateTermInfo(){
+  if(!selDate||!selTime){$("termInfo").textContent="";return;}
+  const loc=lang==="de"?"de-DE":"en-GB";
+  const plan=buildPlan();
+  const dat=new Date(selDate+"T00:00").toLocaleDateString(loc,{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"});
+  $("termInfo").textContent=`✓ ${dat}, ${selTime}–${plan[plan.length-1].bis}`;
+  renderPlanPreview();
+}
+function renderPlanPreview(){
+  if(!$("planPreview"))return;
+  if(!selTime){$("planPreview").textContent="";return;}
+  $("planPreview").innerHTML=buildPlan().map(p=>`${p.von} ${esc(pname(p.id))}`).join(" &middot; ");
+}
+
+/* ================= Excel-Import ================= */
+function setPoolStatus(msg,err){
+  $("poolStatus").className="poolstatus"+(err?" err":"");
+  $("poolStatus").textContent=msg;$("poolSub").textContent=msg;
+  if(err)$("accPool").classList.add("open");
+}
+/* Offizielles Format: "Library of questions.xlsx" (Sheet "Question Matrix") */
+function parseOfficial(wb){
+  const name=wb.SheetNames.find(n=>/matrix/i.test(n));
+  if(!name)return null;
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:""});
+  const head=(rows[0]||[]).map(x=>String(x));
+  const col=re=>head.findIndex(h=>re.test(h));
+  const cIdN=col(/ID neu/i),cId0=col(/^ID$/i);
+  const cId=cIdN>=0?cIdN:cId0;
+  const cCon=col(/Underlaying Concept/i),cDet=col(/Detailed category/i),cTop=col(/^Topic/i),
+        cEn=col(/Question in English/i),cDe=col(/Question in German/i),
+        cA=[col(/^Anker\s*1/i),col(/^Anker\s*2/i),col(/^Anker\s*3/i),col(/^Anker\s*4/i)];
+  if(cCon<0||cDe<0)return null;
+  const raw=rows.slice(1).map(r=>({
+    id:String(r[cId]??"").trim(),
+    concept:String(r[cCon]??"").trim(),
+    det:String(r[cDet]??"").trim(),
+    top:String(r[cTop]??"").trim(),
+    en:String(r[cEn]??"").trim(),
+    de:String(r[cDe]??"").trim(),
+    anker:cA.map(i=>i>=0?String(r[i]??"").trim():"")
+  })).filter(x=>(x.de||x.en)&&x.concept);
+  const byId={};raw.forEach(x=>{if(x.id)byId[x.id]=x;});
+  const isRef=s=>!!s&&s.length<12&&/^[\d\s.]+$/.test(s);
+  return raw.map(x=>{
+    let src=x;
+    if(isRef(x.de)||isRef(x.en)){
+      const key=(isRef(x.de)?x.de:x.en).replace(/\D/g,"");
+      if(byId[key])src=byId[key];
+    }
+    const clean=s=>String(s||"").replace(/^\s*\d+\s*/,"").trim();
+    const de=isRef(src.de)?"":src.de, en=isRef(src.en)?"":src.en;
+    return {id:"Q"+(x.id||Math.random().toString(36).slice(2,6)),
+      phase:/^\s*0\b|(^|\s)cv(\s|$)/i.test(x.concept)?"cv":"diag",
+      cluster:clean(x.concept)||"Ohne Cluster",
+      frage:de||en,enF:en||"",enH:"",
+      hinweis:[clean(x.det),clean(x.top)].filter(Boolean).join(" · "),
+      anker:(x.anker.some(a=>a)?x.anker:src.anker)||[],
+      position:""};
+  }).filter(q=>q.frage);
+}
+function mapPhase(txt){
+  const s=String(txt||"").toLowerCase();
+  if(/cv|motivation/.test(s))return"cv";
+  if(/fach/.test(s))return"fach";
+  return"diag";
+}
+function handleFile(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:"array"});
+      const off=parseOfficial(wb);
+      if(off&&off.length){
+        pool=off;selectedIds.clear();guide=[];
+        setPoolStatus(`✓ ${file.name}: ${off.length} Fragen (offizielle Library, DE+EN, ${off.filter(q=>q.anker.some(a=>a)).length} mit Ankern, ${new Set(off.map(q=>q.cluster)).size} Cluster)`,false);
+        return;
+      }
+      const name=wb.SheetNames.find(n=>/fragen/i.test(n))||wb.SheetNames[0];
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{defval:""});
+      if(!rows.length)throw new Error("Keine Datenzeilen gefunden.");
+      const keys=Object.keys(rows[0]);
+      const find=re=>keys.find(k=>re.test(k));
+      const kC=find(/cluster/i),kF=find(/^frage$/i)||find(/frage/i),kId=find(/^id$/i),kH=find(/achten|hinweis/i),kP=find(/geeignet|position/i),kPh=find(/phase/i);
+      const kA=[1,2,3,4].map(n=>find(new RegExp("anker\\s*"+n,"i")));
+      if(!kC||!kF)throw new Error("Spalten 'Cluster' und 'Frage' nicht gefunden.");
+      const np=rows.filter(r=>String(r[kF]).trim()).map((r,i)=>({
+        id:kId&&String(r[kId]).trim()?String(r[kId]).trim():"F"+String(i+1).padStart(3,"0"),
+        phase:kPh?mapPhase(r[kPh]):"diag",
+        cluster:String(r[kC]).trim()||"Ohne Cluster",
+        frage:String(r[kF]).trim(),
+        hinweis:kH?String(r[kH]).trim():"",
+        anker:kA.map(k=>k?String(r[k]).trim():""),
+        position:kP?String(r[kP]).trim():""
+      }));
+      pool=np;selectedIds.clear();guide=[];
+      setPoolStatus(`✓ ${file.name}: ${np.length} Fragen, ${new Set(np.map(q=>q.cluster)).size} Cluster`,false);
+    }catch(err){setPoolStatus((lang==="de"?"Fehler beim Einlesen: ":"Import error: ")+err.message,true);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+$("fileXlsx").addEventListener("change",e=>e.target.files[0]&&handleFile(e.target.files[0]));
+const dz=$("dropzone");
+dz.addEventListener("dragover",e=>{e.preventDefault();dz.classList.add("drag");});
+dz.addEventListener("dragleave",()=>dz.classList.remove("drag"));
+dz.addEventListener("drop",e=>{e.preventDefault();dz.classList.remove("drag");e.dataTransfer.files[0]&&handleFile(e.dataTransfer.files[0]);});
+
+/* ================= Auswahl (Phasen > Cluster) ================= */
+function renderClusters(){
+  const qPhases=["cv","diag"];
+  $("clusterList").innerHTML=qPhases.map(ph=>{
+    const pqs=pool.filter(p=>p.phase===ph);
+    if(!pqs.length)return"";
+    const clusters=[...new Set(pqs.map(p=>p.cluster))];
+    return `<div class="phase-section"><div class="phase-title">${esc(pname(ph))}</div>`+
+      clusters.map((c,ci)=>{
+        const qs=pqs.filter(p=>p.cluster===c);
+        const nSel=qs.filter(q=>selectedIds.has(q.id)).length;
+        const cid="cl_"+ph+"_"+ci;
+        return `<div class="cluster ${nSel?"open":""}" id="${cid}">
+          <div class="cluster-head" onclick="document.getElementById('${cid}').classList.toggle('open')">
+            <span class="cdot" style="background:${clusterColor(c)}"></span>
+            <input type="checkbox" ${nSel===qs.length?"checked":""} onclick="event.stopPropagation();toggleCluster('${esc(c).replace(/'/g,"\\'")}',this.checked)">
+            <span class="cname">${esc(c)}</span>
+            <span class="ccount">${nSel} / ${qs.length}</span>
+          </div>
+          <div class="cluster-body">${qs.map(q=>`
+            <div class="qrow" onclick="toggleQ('${q.id}')">
+              <input type="checkbox" ${selectedIds.has(q.id)?"checked":""} onclick="event.stopPropagation();toggleQ('${q.id}')">
+              <div class="qtext">${esc(qF(q))}${q.hinweis?`<div class="qhint">&#128161; ${esc(qH(q))}</div>`:""}</div>
+            </div>`).join("")}
+          </div></div>`;
+      }).join("")+"</div>";
+  }).join("");
+  renderGuide();
+}
+function toggleQ(id){
+  if(selectedIds.has(id)){selectedIds.delete(id);guide=guide.filter(q=>q.id!==id);}
+  else{selectedIds.add(id);guide.push(pool.find(p=>p.id===id));}
+  renderClusters();
+}
+function toggleCluster(c,on){
+  pool.filter(p=>p.cluster===c).forEach(q=>{
+    if(on&&!selectedIds.has(q.id)){selectedIds.add(q.id);guide.push(q);}
+    if(!on&&selectedIds.has(q.id)){selectedIds.delete(q.id);guide=guide.filter(g=>g.id!==q.id);}
+  });
+  renderClusters();
+}
+function moveG(i,d){const j=i+d;if(j<0||j>=guide.length)return;[guide[i],guide[j]]=[guide[j],guide[i]];renderGuide();}
+function renderGuide(){
+  const total=guide.length+fachFragen.filter(f=>f.frage.trim()).length;
+  $("guideCount").textContent=total;
+  $("guideEmpty").style.display=total?"none":"block";
+  $("startBtn").disabled=!total;
+  $("guideList").innerHTML=guide.map((q,i)=>`<li>
+    <span class="gnum">${i+1}.</span>
+    <span class="badge" style="background:${clusterColor(q.cluster)};font-size:10px">${esc(q.cluster.split(" ")[0])}</span>
+    <span class="gq">${esc(qF(q).length>65?qF(q).slice(0,65)+"…":qF(q))}</span>
+    <button class="mini" onclick="moveG(${i},-1)">&#9650;</button>
+    <button class="mini" onclick="moveG(${i},1)">&#9660;</button>
+    <button class="mini" onclick="toggleQ('${q.id}')">&#10005;</button>
+  </li>`).join("")+
+  fachFragen.filter(f=>f.frage.trim()).map(f=>`<li><span class="gnum">+</span><span class="badge" style="background:#00868F;font-size:10px">${esc(pname("fach").split(" ")[0])}</span><span class="gq">${esc(f.frage.length>65?f.frage.slice(0,65)+"…":f.frage)}</span></li>`).join("");
+}
+/* Fach-Freitext */
+function addFach(frage,hinweis){fachFragen.push({id:"FX"+Date.now()+Math.floor(Math.random()*99),frage:frage||"",hinweis:hinweis||""});renderFach();}
+function rmFach(i){fachFragen.splice(i,1);renderFach();renderGuide();}
+function updFach(i,v){fachFragen[i].frage=v;renderGuide();}
+function renderFach(){
+  $("fachList").innerHTML=fachFragen.map((f,i)=>`<div class="fachrow">
+    <input type="text" value="${esc(f.frage)}" oninput="updFach(${i},this.value)" placeholder="${lang==="de"?"Fachfrage eingeben…":"Enter technical question…"}">
+    <button class="mini" style="height:auto" onclick="rmFach(${i})">&#10005;</button>
+  </div>${f.hinweis?`<div class="qhint" style="margin:-4px 0 8px 4px">&#128161; ${esc(f.hinweis)}</div>`:""}`).join("");
+  renderGuide();
+}
+
+/* ================= Vorlagen ================= */
+const TPL_KEY="hrcockpit-templates";
+function loadTpls(){try{return JSON.parse(localStorage.getItem(TPL_KEY))||[]}catch(_){return[]}}
+function saveTpls(l){try{localStorage.setItem(TPL_KEY,JSON.stringify(l))}catch(_){}}
+async function writeTplToFolder(tpl){
+  if(!dirHandle)return;
+  try{const fh=await dirHandle.getFileHandle("Vorlage_"+tpl.name.replace(/[^\w\-äöüÄÖÜß]+/g,"_")+".json",{create:true});
+  const w=await fh.createWritable();await w.write(JSON.stringify(tpl,null,2));await w.close();}catch(_){}
+}
+function saveTemplate(){
+  if(!guide.length&&!fachFragen.length){alert(lang==="de"?"Bitte zuerst Fragen auswählen.":"Please select questions first.");return;}
+  const name=(prompt(lang==="de"?"Name der Vorlage:":"Template name:",$("kPos").value||"")||"").trim();
+  if(!name)return;
+  const tpl={app:"hr-interview-template",version:2,name,fragen:guide.map(q=>({...q})),fach:fachFragen.map(f=>({...f})),erstellt:new Date().toISOString()};
+  const l=loadTpls().filter(x=>x.name!==name);l.push(tpl);saveTpls(l);
+  writeTplToFolder(tpl);renderTplBar();
+}
+function applyTemplate(){
+  const name=$("tplSel").value;if(!name)return;
+  const tpl=loadTpls().find(x=>x.name===name);if(!tpl)return;
+  selectedIds.clear();guide=[];
+  (tpl.fragen||[]).forEach(f=>{
+    let q=pool.find(p=>p.frage===f.frage);
+    if(!q){q={...f};pool.push(q);}
+    if(!selectedIds.has(q.id)){selectedIds.add(q.id);guide.push(q);}
+  });
+  fachFragen=(tpl.fach||[]).map(f=>({...f}));
+  if(!$("kPos").value.trim())$("kPos").value=tpl.name;
+  renderClusters();renderFach();
+}
+function deleteTemplate(){
+  const name=$("tplSel").value;if(!name)return;
+  if(!confirm((lang==="de"?"Vorlage löschen: ":"Delete template: ")+name+"?"))return;
+  saveTpls(loadTpls().filter(x=>x.name!==name));renderTplBar();
+}
+function renderTplBar(){
+  const l=loadTpls();
+  $("tplBar").innerHTML=`<label>${esc(t("tplLabel"))}</label>
+   <div class="btnrow">
+    <select id="tplSel" style="flex:1;min-width:170px;width:auto"${l.length?"":" disabled"}>${l.length?l.map(x=>`<option>${esc(x.name)}</option>`).join(""):`<option>${esc(t("tplNone"))}</option>`}</select>
+    <button class="btn secondary" onclick="applyTemplate()"${l.length?"":" disabled"}>${esc(t("tplLoad"))}</button>
+    <button class="btn secondary" onclick="saveTemplate()">${esc(t("tplSave"))}</button>
+    <button class="btn ghost" onclick="deleteTemplate()"${l.length?"":" disabled"}>&#10005;</button>
+    ${lang==="en"?`<button class="btn secondary" onclick="translateGuide()" id="transBtn">${esc(t("translateBtn"))}</button>`:""}
+    <button class="btn secondary" onclick="simplifyAnchors()">&#10024; ${lang==="de"?"Anker vereinfachen (KI)":"Simplify anchors (AI)"}</button>
+    <span id="ankStatus" style="font-size:12.5px;color:var(--green);align-self:center;font-weight:600"></span>
+   </div>`;
+}
+/* ================= KI-Copilot ================= */
+const EXAMPLE_AD=`Senior Backend Engineer (w/m/d) - mind. 32h
+Beispiel Industrie GmbH, Stuttgart · Produktentwicklung & Plattform · Unbefristet
+
+Sie sind Teil unseres Plattform-Teams und bauen die Backend-Services, auf denen unsere
+Produktionslinien-Software aufsetzt. Sie arbeiten an der Schnittstelle von Softwarearchitektur,
+Datenmodellierung und operativem Betrieb.
+
+Ihre Aufgaben:
+- Entwicklung und Betrieb von Backend-Services für produktionsnahe Anwendungen
+- Entwurf von Datenmodellen und APIs für interne und externe Konsumenten
+- Aufbau und Pflege von CI/CD-Pipelines und automatisierten Tests
+- Zusammenarbeit mit Produkt- und Hardware-Teams an der Schnittstelle Software/Fertigung
+- Skalierbare Infrastruktur (Containerisierung, Monitoring, Incident-Response)
+
+Ihre Qualifikationen:
+- Studium in Informatik, Softwaretechnik oder vergleichbar
+- Mehrjährige Erfahrung mit Backend-Entwicklung in produktionsnaher Nutzung
+- Sehr gute Kenntnisse in einer Backend-Sprache (z.B. Python, Go, Java)
+- Erfahrung mit relationalen Datenbanken und API-Design
+- Gute Englischkenntnisse, gute Kommunikationsfähigkeiten
+
+Hinweis: fiktive Beispiel-Stellenanzeige, kein Bezug zu einer realen Ausschreibung.`;
+async function extractPdf(file){
+  if(!window.pdfjsLib)throw new Error("PDF-Bibliothek nicht geladen.");
+  pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  let txt="";
+  for(let p=1;p<=pdf.numPages;p++){const c=await (await pdf.getPage(p)).getTextContent();txt+=c.items.map(i=>i.str).join(" ")+"\n";}
+  return txt.replace(/\s{3,}/g," ").trim();
+}
+$("fileCv").addEventListener("change",async e=>{
+  const f=e.target.files[0];if(!f)return;
+  $("cvStatus").textContent="…";
+  try{
+    const txt=await extractPdf(f);
+    if(txt.length<50)throw new Error(lang==="de"?"Kaum Text gefunden – gescanntes PDF? Bitte Text einfügen.":"Hardly any text found – scanned PDF? Please paste text.");
+    $("cvText").value=txt;$("cvStatus").textContent=`✓ ${f.name} (${txt.length})`;
+  }catch(err){$("cvStatus").textContent=err.message;}
+  e.target.value="";
+});
+function loadExampleAd(){$("jobAd").value=EXAMPLE_AD;$("aiStatus").textContent=lang==="de"?"Beispiel-Stellenanzeige geladen (Senior Backend Engineer, fiktiv).":"Example job posting loaded (Senior Backend Engineer, fictional).";}
+function getKey(){const k=$("apiKey").value.trim();if(k)try{localStorage.setItem("hr-cockpit-api-key",k)}catch(_){}return k||(function(){try{return localStorage.getItem("hr-cockpit-api-key")||""}catch(_){return""}})();}
+async function callClaude(prompt,maxTokens){
+  let res;
+  try{
+    res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{
+      "content-type":"application/json","x-api-key":getKey(),"anthropic-version":"2023-06-01",
+      "anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:AI_MODEL,max_tokens:maxTokens||2500,messages:[{role:"user",content:prompt}]})});
+  }catch(e){throw new Error("Netzwerkfehler – API nicht erreichbar ("+e.message+").");}
+  let j;try{j=await res.json();}catch(e){throw new Error("Unerwartete API-Antwort (HTTP "+res.status+").");}
+  if(j.error)throw new Error((j.error.message||"API-Fehler")+(res.status===401?" – API-Key prüfen.":""));
+  const txt=(j.content||[]).filter(b=>b&&b.type==="text").map(b=>b.text).join("");
+  if(!txt)throw new Error("Keine Textantwort erhalten.");
+  return txt;
+}
+function parseSuggestLines(x){
+  const out={positionstitel:"",auswahl:[],zusatzfragen:[],name:"",profil:[],cvfragen:[],fachfragen:[],abgleich:[]};
+  for(const line of String(x||"").split("\n")){
+    const l=line.trim();
+    const grab=(re)=>l.replace(re,"").split("|").map(s=>s.trim());
+    if(/^TITEL\s*:/i.test(l))out.positionstitel=l.replace(/^TITEL\s*:/i,"").trim();
+    else if(/^AUSWAHL\s*:/i.test(l)){const p=grab(/^AUSWAHL\s*:/i);if(p[0])out.auswahl.push({id:p[0],grund:p[1]||""});}
+    else if(/^NEU\s*:/i.test(l)){const p=grab(/^NEU\s*:/i);if(p[1])out.zusatzfragen.push({cluster:p[0],frage:p[1],hinweis:p[2]||""});}
+    else if(/^NAME\s*:/i.test(l))out.name=l.replace(/^NAME\s*:/i,"").trim();
+    else if(/^PROFIL\s*:/i.test(l)){const p=l.replace(/^PROFIL\s*:/i,"").trim();if(p)out.profil.push(p);}
+    else if(/^CVFRAGE\s*:/i.test(l)){const p=grab(/^CVFRAGE\s*:/i);if(p[0])out.cvfragen.push({frage:p[0],hinweis:p[1]||""});}
+    else if(/^FACHFRAGE\s*:/i.test(l)){const p=grab(/^FACHFRAGE\s*:/i);if(p[0])out.fachfragen.push({frage:p[0],hinweis:p[1]||""});}
+    else if(/^ABGLEICH\s*:/i.test(l)){const p=grab(/^ABGLEICH\s*:/i);if(p[0])out.abgleich.push({anforderung:p[0],status:(p[1]||"unklar").toLowerCase(),frage:p[2]||""});}
+  }
+  if(!out.auswahl.length)throw new Error(lang==="de"?"KI-Antwort konnte nicht interpretiert werden.":"Could not interpret AI answer.");
+  return out;
+}
+const CLUSTER_KEYWORDS={"führ":["führung","leitung","team","verantwortung"],"kommunikation":["kommunikation","kunden","englisch","stakeholder"],"problem":["analyse","komplex","entwicklung","lösung","simulation","pipeline"],"team":["team","zusammenarbeit","schnittstelle","co-design"],"motivation":["innovation","veränderung","lernen","forschung"]};
+function localMatch(ad){
+  const s=ad.toLowerCase(),auswahl=[];
+  for(const c of new Set(pool.map(p=>p.cluster))){
+    const kws=Object.entries(CLUSTER_KEYWORDS).find(([k])=>c.toLowerCase().includes(k));
+    const sc=kws?kws[1].reduce((a,w)=>a+(s.includes(w)?1:0),0):1;
+    if(sc<1)continue;
+    pool.filter(p=>p.cluster===c).slice(0,sc>=3?3:2).forEach(q=>auswahl.push({id:q.id,grund:`Cluster "${c}" passt (Score ${sc})`}));
+  }
+  return {positionstitel:(ad.split("\n")[0]||"").slice(0,80),auswahl,zusatzfragen:[],cvfragen:[],fachfragen:[],abgleich:[],profil:[],name:"",_demo:true};
+}
+async function analyzeAd(){
+  const ad=$("jobAd").value.trim();
+  if(ad.length<100){alert(lang==="de"?"Bitte zuerst eine Stellenanzeige einfügen.":"Please paste a job posting first.");return;}
+  $("aiBtn").disabled=true;$("aiResult").innerHTML="";
+  try{
+    const cv=$("cvText").value.trim().slice(0,6000);
+    if(getKey()){
+      $("aiStatus").textContent=lang==="de"?"KI analysiert…":"AI is analyzing…";
+      const poolTxt=pool.map(p=>`${p.id}|${p.cluster}|${p.frage}`).join("\n");
+      const answerLang=lang==="de"?"Antworte auf Deutsch.":"Answer in English (translate questions if needed).";
+      let prompt=`Du bist HR-Experte für strukturierte Interviews (Bewertungsskala 1-4). Fragenpool (ID|Cluster|Frage):\n${poolTxt}\n\nStellenanzeige:\n${ad}\n\nWähle die 8-12 passendsten Poolfragen und formuliere 3 neue positionsspezifische Verhaltensfragen (Cluster aus den vorhandenen, kurzer Bewertungshinweis). Extrahiere den Positionstitel.`;
+      let format=`TITEL: <Positionstitel>\nAUSWAHL: <ID> | <Begründung, max. 12 Wörter>\nNEU: <Cluster> | <Frage> | <Bewertungshinweis>`;
+      if(cv){
+        prompt+=`\n\nLebenslauf des Kandidaten:\n${cv}\n\nErstelle zusätzlich: Name des Kandidaten; Kurzprofil (3-5 Zeilen); genau 5 kandidatenspezifische Verhaltensfragen mit CV-Bezug (Motivation, Wechselgründe, Werdegang, Lücken – KEINE fachlich-technischen Fragen, die folgen im Zweitgespräch). KEINE Eignungsbewertung, kein Scoring.`;
+        format+=`\nNAME: <Name>\nPROFIL: <Zeile>\nCVFRAGE: <Frage> | <CV-Bezug>`;
+      }
+      prompt+=`\n${answerLang}\nAntworte AUSSCHLIESSLICH zeilenbasiert, kein Markdown:\n${format}`;
+      _suggest=parseSuggestLines(await callClaude(prompt,cv?4000:2500));
+      _suggest._demo=false;
+    }else{
+      $("aiStatus").textContent=(lang==="de"?"Kein API-Key – Demo-Modus.":"No API key – demo mode.")+(cv?(lang==="de"?" CV-Analyse übersprungen.":" CV analysis skipped."):"");
+      _suggest=localMatch(ad);
+    }
+    renderSuggestions();
+  }catch(e){$("aiStatus").innerHTML=`<span style="color:var(--red)">${esc(e.message)}</span>`;}
+  $("aiBtn").disabled=false;
+}
+function renderSuggestions(){
+  const s=_suggest;if(!s)return;
+  const row=(badge,color,frage,info)=>`<tr><td><span class="badge" style="background:${color};font-size:10px">${badge}</span></td><td>${esc(frage)}</td><td style="font-size:12px;color:var(--muted)">${esc(info||"")}</td></tr>`;
+  const rows=s.auswahl.filter(a=>pool.find(p=>p.id===a.id)).map(a=>{const q=pool.find(p=>p.id===a.id);return row(esc(q.cluster),clusterColor(q.cluster),qF(q),a.grund);}).join("");
+  const neu=(s.zusatzfragen||[]).map(z=>row("NEU · "+esc(z.cluster),"#7B4FA6",z.frage,z.hinweis)).join("");
+  const cvR=(s.cvfragen||[]).map(z=>row("CV","#C25E00",z.frage,z.hinweis)).join("");
+  const teile=[`${s.auswahl.length} Pool`];
+  if((s.zusatzfragen||[]).length)teile.push(`${s.zusatzfragen.length} ${lang==="de"?"neue":"new"}`);
+  if((s.cvfragen||[]).length)teile.push(`${s.cvfragen.length} CV`);
+  $("aiStatus").innerHTML=`${s._demo?"&#9888; Demo:":"&#10024;"} <b>${teile.join(" + ")}</b> · „${esc(s.positionstitel||"")}“${s.name?` · <b>${esc(s.name)}</b>`:""}`;
+  $("aiResult").innerHTML=`<table style="margin-top:8px"><tr><th>${t("cluster")}</th><th>${t("frage")}</th><th>${t("grund")}</th></tr>${rows}${neu}${cvR}</table>
+    <div class="btnrow" style="margin-top:12px"><button class="btn" onclick="applySuggestions()">${t("applyBtn")}</button></div>`;
+  $("aiSub").textContent=lang==="de"?"✓ Vorschläge erstellt":"✓ Suggestions ready";
+  $("aiSub").style.color="var(--green)";
+}
+function applySuggestions(){
+  if(!_suggest)return;
+  let ki=1;
+  const addQ=(phase,cluster,frage,hinweis)=>{
+    const id="KI"+String(ki++).padStart(2,"0")+"_"+Date.now()%1000;
+    pool.push({id,phase,cluster,frage,hinweis:hinweis||"",anker:[],position:_suggest.positionstitel||""});
+    selectedIds.add(id);guide.push(pool[pool.length-1]);
+  };
+  _suggest.auswahl.forEach(a=>{const q=pool.find(p=>p.id===a.id);if(q&&!selectedIds.has(q.id)){selectedIds.add(q.id);guide.push(q);}});
+  (_suggest.zusatzfragen||[]).forEach(z=>addQ("diag",z.cluster||"Positionsspezifisch",z.frage,z.hinweis));
+  (_suggest.cvfragen||[]).forEach(z=>addQ("cv","Kandidatenspezifisch (CV)",z.frage,z.hinweis));
+  if(!$("kPos").value.trim()&&_suggest.positionstitel)$("kPos").value=_suggest.positionstitel;
+  if(!$("kName").value.trim()&&_suggest.name)$("kName").value=_suggest.name;
+  window._profil=_suggest.profil||[];
+  gotoStep(1);
+}
+async function translateGuide(){
+  if(!getKey()){alert("API-Key nötig / API key required.");return;}
+  const all=[...guide,...fachFragen.filter(f=>f.frage.trim())];
+  if(!all.length)return;
+  $("transBtn")&&($("transBtn").disabled=true);
+  try{
+    const lines=all.map(q=>`${q.id}|${q.frage}|${q.hinweis||""}`).join("\n");
+    const res=await callClaude(`Translate these German interview questions to natural professional English. Input format ID|question|hint. Answer ONLY with the same line format, same IDs, translated question and hint:\n${lines}`,3000);
+    res.split("\n").forEach(l=>{
+      const p=l.split("|").map(s=>s.trim());
+      const q=all.find(x=>x.id===p[0]);
+      if(q&&p[1]){q.enF=p[1];q.enH=p[2]||"";}
+    });
+    renderClusters();renderFach();
+    $("aiStatus")&&($("aiStatus").textContent=t("transDone"));
+  }catch(e){alert(e.message);}
+  $("transBtn")&&($("transBtn").disabled=false);
+}
+
+/* ================= Kurzanker ================= */
+const KA_KEY="hrcockpit-kurzanker";
+let ankerMode=(function(){try{return localStorage.getItem("hrcockpit-ankermode")||"kurz"}catch(_){return"kurz"}})();
+function loadKA(){try{return JSON.parse(localStorage.getItem(KA_KEY))||{}}catch(_){return{}}}
+function saveKA(x){try{localStorage.setItem(KA_KEY,JSON.stringify(x))}catch(_){}}
+function curQ(){const it=items[itemIdx];return it&&it.t==="q"?it.q:null;}
+function fmtAnker(a){
+  return String(a||"").replace(/^\s*\d+\.?\s*/,"").split(/\n+|(?:^|\s)-\s+/).map(s=>s.replace(/^[-–]\s*/,"").trim()).filter(s=>s.length>2);
+}
+function toggleAnkerMode(){ankerMode=ankerMode==="kurz"?"voll":"kurz";try{localStorage.setItem("hrcockpit-ankermode",ankerMode)}catch(_){}renderItem();}
+async function simplifyAnchors(list){
+  const qs=(list||[...guide]).filter(Boolean).filter(q=>(q.anker||[]).some(x=>x)&&!loadKA()[q.id]);
+  if(!qs.length){alert(lang==="de"?"Keine Anker zu vereinfachen (bereits erledigt oder keine vorhanden).":"Nothing to simplify.");return;}
+  if(!getKey()){alert(lang==="de"?"API-Key nötig (⚙ oben rechts).":"API key required (⚙ top right).");return;}
+  const st=$("ankStatus");if(st)st.textContent="…";
+  try{
+    const input=qs.map(q=>`${q.id}|${q.frage.replace(/\s+/g," ").slice(0,120)}|${q.anker.map(a=>String(a).replace(/\s+/g," ").slice(0,400)).join("|")}`).join("\n");
+    const outLang=lang==="de"?"auf Deutsch":"in English";
+    const res=await callClaude(`Vereinfache diese Verhaltensanker (BARS, Bewertungsstufen 1-4) für Interviewer, ${outLang}. Je Stufe genau EINE prägnante Zeile (max. 12 Wörter), konkretes beobachtbares Verhalten, keine Floskeln, Bedeutung der Stufe erhalten. Input pro Zeile: ID|Frage|Anker1|Anker2|Anker3|Anker4.\n${input}\nAntworte NUR mit Zeilen im Format:\nKURZ: <ID> | <Stufe1> | <Stufe2> | <Stufe3> | <Stufe4>`,2500);
+    const ka=loadKA();let n=0;
+    res.split("\n").forEach(l=>{
+      const m=l.match(/^KURZ\s*:\s*(.+)$/i);if(!m)return;
+      const p=m[1].split("|").map(s=>s.trim());
+      if(p.length>=5&&qs.find(q=>q.id===p[0])){ka[p[0]]=[p[1],p[2],p[3],p[4]];n++;}
+    });
+    saveKA(ka);
+    ankerMode="kurz";try{localStorage.setItem("hrcockpit-ankermode","kurz")}catch(_){}
+    if(st)st.textContent="✓ "+n;
+    if($("view-interview").classList.contains("active"))renderItem();
+    alert(lang==="de"?`Kurzanker für ${n} Fragen erstellt. Bitte einmal fachlich prüfen – die Anker sind eure Messlatte. Das Original bleibt per Klick erreichbar.`:`Short anchors created for ${n} questions.`);
+  }catch(e){if(st)st.textContent="";alert(e.message);}
+}
+
+/* ================= Interview ================= */
+function qItems(){return items.filter(i=>i.t==="q");}
+function startInterview(){
+  const fachQs=fachFragen.filter(f=>f.frage.trim()).map(f=>({id:f.id,phase:"fach",cluster:"Fachliche Kompetenzen",frage:f.frage,hinweis:f.hinweis||"",anker:[],enF:f.enF,enH:f.enH}));
+  if(!guide.length&&!fachQs.length)return;
+  if(!selDate)selDate=new Date().toISOString().slice(0,10);
+  if(!selTime){const n=new Date();selTime=minToTime(Math.floor((n.getHours()*60+n.getMinutes())/5)*5);}
+  items=[{t:"check",ph:"start"}];
+  guide.filter(q=>q.phase==="cv").forEach(q=>items.push({t:"q",q}));
+  fachQs.forEach(q=>items.push({t:"q",q}));
+  guide.filter(q=>q.phase!=="cv").forEach(q=>items.push({t:"q",q}));
+  items.push({t:"form"},{t:"check",ph:"ende"});
+  qItems().forEach(it=>{if(!answers[it.q.id])answers[it.q.id]={rating:null,skipped:false,note:"",sek:0};});
+  checklists={start:Array(4).fill(false),ende:Array(4).fill(false)};
+  window._plan=buildPlan();
+  itemIdx=0;ivStart=Date.now();window._finished=false;
+  gotoStep(2);
+  $("ivKandidat").textContent=$("kName").value;
+  $("ivPosition").textContent="· "+$("kPos").value;
+  $("tPlanEnd").textContent=window._plan[window._plan.length-1].bis;
+  if(window._profil&&window._profil.length){
+    $("profilBox").style.display="block";
+    $("profilBox").innerHTML=`<b style="color:var(--blue-dark);font-size:13.5px">${lang==="de"?"Kandidatenprofil (aus CV)":"Candidate profile (from CV)"}</b><ul style="margin:6px 0 0 18px;font-size:13px;color:var(--muted)">${window._profil.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>`;
+  }else $("profilBox").style.display="none";
+  if(tickHandle)clearInterval(tickHandle);
+  tickHandle=setInterval(()=>{if(ivStart)$("tGesamt").textContent=fmt(Math.floor((Date.now()-ivStart)/1000));},1000);
+  renderItem();
+  saveDraft();
+}
+function itemPhase(it){return it.t==="check"?it.ph:it.t==="form"?"rahmen":it.q.phase;}
+function renderPhaseBar(){
+  const cur=itemPhase(items[itemIdx]);
+  const lastIdx={};items.forEach((it,i)=>lastIdx[itemPhase(it)]=i);
+  $("phaseBar").innerHTML=PHASES.map(p=>{
+    const pl=(window._plan||[]).find(x=>x.id===p.id);
+    const st=p.id===cur?"cur":(lastIdx[p.id]!==undefined&&lastIdx[p.id]<itemIdx)||(lastIdx[p.id]===undefined&&PHASES.findIndex(x=>x.id===p.id)<PHASES.findIndex(x=>x.id===cur))?"done":"";
+    return `<div class="phasechip ${st}">${esc(pname(p.id))}<small>${pl?pl.von+"–"+pl.bis:""}</small></div>`;
+  }).join("");
+}
+function saveCurrent(){
+  const it=items[itemIdx];
+  if(it.t==="q"){
+    const a=answers[it.q.id];
+    const n=$("qNote");if(n)a.note=n.value;
+    if(qStart){a.sek+=Math.floor((Date.now()-qStart)/1000);qStart=null;}
+  }
+  if(it.t==="form")RFIELDS.forEach(f=>{const el=$("rf_"+f);if(el)rahmen[f]=el.value;});
+}
+function renderItem(){
+  const it=items[itemIdx];
+  renderPhaseBar();
+  $("progBar").style.width=(itemIdx/items.length*100)+"%";
+  const navHtml=`<div class="navrow">
+    <button class="btn ghost" ${itemIdx===0?"disabled":""} onclick="nav(-1)">${t("back")}</button>
+    <button class="btn" onclick="nav(1)">${itemIdx===items.length-1?t("finishIv"):t("nextQ")}</button></div>`;
+  if(it.t==="check"){
+    const list=t("check_"+it.ph);
+    $("itemCard").innerHTML=`<span class="badge" style="background:var(--blue)">${esc(pname(it.ph))}</span>
+      <div style="color:var(--muted);font-size:13px;margin:10px 0 14px">${esc(t("checkHint"))}</div>`+
+      list.map((c,i)=>`<div class="checkitem ${checklists[it.ph][i]?"done":""}" onclick="toggleCheck('${it.ph}',${i})">
+        <input type="checkbox" ${checklists[it.ph][i]?"checked":""} onclick="event.stopPropagation();toggleCheck('${it.ph}',${i})"><span>${esc(c)}</span></div>`).join("")+navHtml;
+    return;
+  }
+  if(it.t==="form"){
+    $("itemCard").innerHTML=`<span class="badge" style="background:var(--blue)">${esc(pname("rahmen"))}</span>
+      <div style="margin-top:16px" class="grid2">`+
+      RFIELDS.map(f=>`<div${f==="verfuegbar"?' style="grid-column:1/-1"':""}><label>${esc(t("rf_"+f))}</label><input type="text" id="rf_${f}" value="${esc(rahmen[f]||"")}" oninput="rahmenInput('${f}',this.value)"></div>`).join("")+
+      `</div>`+navHtml;
+    return;
+  }
+  const q=it.q,a=answers[q.id];
+  qStart=Date.now();
+  const qs=qItems();const qNum=qs.findIndex(x=>x.q.id===q.id)+1;
+  let anker="";
+  if((q.anker||[]).some(x=>x)){
+    const ka=loadKA()[q.id];
+    const useKurz=ankerMode==="kurz"&&ka;
+    const ctl=`<span style="float:right;font-weight:400;text-transform:none;letter-spacing:0">${
+      ka?`<a href="#" onclick="toggleAnkerMode();return false" style="font-size:11px;color:var(--blue)">${useKurz?(lang==="de"?"Original anzeigen":"show original"):(lang==="de"?"Kurzfassung anzeigen":"show short version")}</a>`
+        :`<a href="#" onclick="simplifyAnchors([curQ()]);return false" style="font-size:11px;color:var(--blue)">&#10024; ${lang==="de"?"vereinfachen (KI)":"simplify (AI)"}</a>`}</span>`;
+    anker=`<label style="margin-top:4px">${esc(t("anchorsT"))}${useKurz?` <span style="font-weight:400;font-size:10px;color:var(--muted);text-transform:none">(${lang==="de"?"KI-Kurzfassung":"AI short version"})</span>`:""}${ctl}</label>
+      <div class="ankerbox">${q.anker.map((ax,i)=>{
+        if(!ax&&!(ka&&ka[i]))return"";
+        const inner=useKurz&&ka[i]?`<b style="font-weight:600">${esc(ka[i])}</b>`:fmtAnker(ax).map(p=>`<div style="margin-bottom:2px">&ndash; ${esc(p)}</div>`).join("");
+        return `<div class="arow ${a.rating===i+1?"hl":""}"><span class="anum">${i+1}</span><span>${inner}</span></div>`;}).join("")}</div>`;
+  }
+  $("itemCard").innerHTML=`
+    <span class="badge" style="background:${clusterColor(q.cluster)}">${esc(q.cluster)}</span>
+    <span style="color:var(--muted);font-size:12px;margin-left:8px">${esc(pname(q.phase))} · ${t("frage")} ${qNum} ${t("qOf")} ${qs.length}</span>
+    <div class="frage">${esc(qF(q))}</div>
+    ${q.hinweis?`<div class="hintbox">&#128161; ${esc(qH(q))}</div>`:""}
+    <label>${lang==="de"?"Bewertung (1–4)":"Rating (1–4)"}</label>
+    <div class="ratingrow">${[1,2,3,4].map(v=>`<button class="rate r${v} ${a.rating===v?"sel":""}" onclick="setRating(${v})">${v}<small>${esc(t("rate"+v))}</small></button>`).join("")}</div>
+    ${anker}
+    <button class="skipbtn ${a.skipped?"on":""}" onclick="toggleSkip()">${a.skipped?t("unskipQ"):t("skipQ")}</button>
+    <label>${esc(t("notes"))}</label>
+    <textarea id="qNote" rows="3" oninput="noteInput(this.value)">${esc(a.note)}</textarea>${navHtml}`;
+}
+function toggleCheck(ph,i){checklists[ph][i]=!checklists[ph][i];saveDraftSoon();renderItem();}
+function setRating(v){
+  const it=items[itemIdx];if(it.t!=="q")return;
+  const a=answers[it.q.id];
+  a.rating=a.rating===v?null:v;
+  if(a.rating!==null)a.skipped=false;
+  const n=$("qNote");if(n)a.note=n.value;
+  saveDraftSoon();
+  renderItem();
+}
+function toggleSkip(){
+  const it=items[itemIdx];if(it.t!=="q")return;
+  const a=answers[it.q.id];a.skipped=!a.skipped;if(a.skipped)a.rating=null;
+  const n=$("qNote");if(n)a.note=n.value;
+  saveDraftSoon();
+  renderItem();
+}
+function nav(d){
+  saveCurrent();saveDraft();
+  if(itemIdx+d>=items.length){finishInterview();return;}
+  if(itemIdx+d<0)return;
+  itemIdx+=d;renderItem();
+}
+document.addEventListener("keydown",e=>{
+  if(!$("view-interview").classList.contains("active"))return;
+  if(["TEXTAREA","INPUT"].includes(document.activeElement.tagName))return;
+  if(e.key>="1"&&e.key<="4")setRating(+e.key);
+});
+
+/* ================= Zusammenfassung ================= */
+function clusterAverages(){
+  const m={};
+  qItems().forEach(it=>{
+    const a=answers[it.q.id];
+    m[it.q.cluster]=m[it.q.cluster]||[];
+    if(a&&a.rating!=null)m[it.q.cluster].push(a.rating);
+  });
+  const out={};
+  for(const[c,v]of Object.entries(m))out[c]=v.length?+(v.reduce((x,y)=>x+y,0)/v.length).toFixed(2):null;
+  return out;
+}
+function finishInterview(){
+  if(tickHandle)clearInterval(tickHandle);
+  window._finished=true;
+  const dauer=Math.floor((Date.now()-ivStart)/1000);window._dauer=dauer;
+  gotoStep(3);
+  $("sName").textContent=$("kName").value;
+  $("sMeta").textContent=`${$("kPos").value} · ${selDate||""} ${selTime||""} · ${lang==="de"?"Interviewer":"Interviewer"}: ${$("kInt").value||"–"}`;
+  const qs=qItems();
+  const rated=qs.filter(it=>answers[it.q.id].rating!=null);
+  const skipped=qs.filter(it=>answers[it.q.id].skipped);
+  const avg=rated.length?(rated.reduce((s,it)=>s+answers[it.q.id].rating,0)/rated.length).toFixed(1):"–";
+  $("sKpis").innerHTML=`
+    <div class="kpi"><b>${avg}</b><span>${esc(t("kAvg"))}</span></div>
+    <div class="kpi"><b>${rated.length}/${qs.length}</b><span>${esc(t("kRated"))}</span></div>
+    <div class="kpi"><b>${skipped.length}</b><span>${esc(t("kSkip"))}</span></div>
+    <div class="kpi"><b>${fmt(dauer)}</b><span>${esc(t("kDur"))}</span></div>`;
+  const cavg=clusterAverages();
+  if(radarObj)radarObj.destroy();
+  radarObj=new Chart($("radarChart"),{type:"radar",
+    data:{labels:Object.keys(cavg),datasets:[{label:$("kName").value,data:Object.values(cavg).map(v=>v??0),
+      backgroundColor:"rgba(0,145,220,.15)",borderColor:"#3454D1",pointBackgroundColor:"#3454D1",borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,scales:{r:{min:0,max:4,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
+  $("sClusterTable").innerHTML=`<tr><th>${t("cluster")}</th><th>&Oslash;</th><th>n</th></tr>`+
+    Object.entries(cavg).map(([c,v])=>{
+      const n=qs.filter(it=>it.q.cluster===c&&answers[it.q.id].rating!=null).length;
+      const tot=qs.filter(it=>it.q.cluster===c).length;
+      return `<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${clusterColor(c)};margin-right:6px"></span>${esc(c)}</td>
+        <td><span class="chip ${v==null?"cx":"c"+Math.round(v)}">${v==null?"–":v.toFixed(1)}</span></td><td>${n}/${tot}</td></tr>`;}).join("");
+  $("sRahmenTable").innerHTML=RFIELDS.map(f=>`<tr><td style="width:40%;font-weight:600">${esc(t("rf_"+f))}</td><td>${esc(rahmen[f]||"–")}</td></tr>`).join("");
+  $("sQTable").innerHTML=`<tr><th>#</th><th>${t("cluster")}</th><th>${t("frage")} &amp; ${t("notes")}</th><th>1–4</th></tr>`+
+    qs.map((it,i)=>{
+      const a=answers[it.q.id];
+      const chip=a.skipped?`<span class="chip cx">${lang==="de"?"übersprungen":"skipped"}</span>`:a.rating!=null?`<span class="chip c${a.rating}">${a.rating}</span>`:'<span class="chip cx">–</span>';
+      return `<tr><td>${i+1}</td><td style="white-space:nowrap"><span class="badge" style="background:${clusterColor(it.q.cluster)};font-size:10.5px">${esc(it.q.cluster)}</span></td>
+        <td>${esc(qF(it.q))}${a.note?`<div class="qnote">&#9998; ${esc(a.note)}</div>`:""}</td><td>${chip}</td></tr>`;}).join("");
+  autoSave();
+  clearDraft();
+  if(ctx){
+    const st=stellen.find(s=>s.id===ctx.stelleId);
+    if(st){
+      const k=st.kandidaten.find(x=>x.id===ctx.kandId);
+      if(k){k.status="interviewt";k.ivKey=resKey(currentResult());k.challenge=$("sChallenge").value;
+        const cvt=$("cvText").value.trim();if(cvt)k.cv=cvt.slice(0,6000);}
+      if($("jobAd").value.trim())st.anzeige=$("jobAd").value;
+      st.vorlage={fragen:guide.map(q=>({...q})),fach:fachFragen.map(f=>({...f}))};
+      saveStelle(st);
+    }
+  }
+}
+
+/* ================= Ergebnis & Exporte ================= */
+function currentResult(){
+  return {app:"hr-interview-tool",version:2,skala:4,lang,
+    stelleId:ctx?ctx.stelleId:null,
+    geaendert:new Date().toISOString(),
+    kandidat:{name:$("kName").value,position:$("kPos").value,interviewer:$("kInt").value,datum:selDate,zeit:selTime},
+    plan:window._plan||[],
+    fragen:qItems().map(it=>({...it.q,...answers[it.q.id]})),
+    checklists,rahmen,
+    clusterAvg:clusterAverages(),
+    gesamteindruck:$("sEindruck").value,empfehlung:$("sEmpfehlung").value,
+    offeneThemen:$("sChallenge").value,
+    dauerSek:window._dauer||0,erstellt:new Date().toISOString()};
+}
+function download(name,content,type){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=name;a.click();URL.revokeObjectURL(a.href);
+}
+function fileNameFor(r){return `Interview_${(r.kandidat.name||"x").replace(/[^\w\-äöüÄÖÜß]+/g,"_")}_${r.kandidat.datum||"x"}.json`;}
+function exportJson(){const r=currentResult();download(fileNameFor(r),JSON.stringify(r,null,2),"application/json");}
+function exportWord(){
+  const r=currentResult();
+  const rows=r.fragen.map((q,i)=>`<tr><td>${i+1}</td><td>${esc(q.cluster)}</td><td>${esc(q.frage)}${q.note?`<br><i style="color:#666">${esc(q.note)}</i>`:""}</td><td align="center">${q.skipped?"–":q.rating??"–"}</td></tr>`).join("");
+  const cl=Object.entries(r.clusterAvg).map(([c,v])=>`<tr><td>${esc(c)}</td><td align="center"><b>${v==null?"–":v.toFixed(1)}</b></td></tr>`).join("");
+  const rh=RFIELDS.map(f=>`<tr><td>${esc(t("rf_"+f))}</td><td>${esc(r.rahmen[f]||"–")}</td></tr>`).join("");
+  const html=`<html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>
+    body{font-family:Arial;font-size:11pt}h1{color:#3454D1}h2{color:#1F2A44;font-size:13pt}
+    table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:6px;font-size:10pt}th{background:#3454D1;color:#fff}
+  </style></head><body>
+  <h1>HR Interview Cockpit ${lang==="de"?"Interviewbericht":"Interview report"}</h1>
+  <p><b>${esc(r.kandidat.name)}</b> – ${esc(r.kandidat.position)}<br>${esc(r.kandidat.datum||"–")} ${esc(r.kandidat.zeit||"")} · Interviewer: ${esc(r.kandidat.interviewer||"–")}</p>
+  <h2>${esc(t("clusterTitle"))} (1–4)</h2><table><tr><th>${t("cluster")}</th><th>Ø</th></tr>${cl}</table>
+  <h2>${esc(t("rahmenTitle"))}</h2><table>${rh}</table>
+  <h2>${esc(t("detailTitle"))}</h2><table><tr><th>#</th><th>${t("cluster")}</th><th>${t("frage")} / ${t("notes")}</th><th>1–4</th></tr>${rows}</table>
+  <h2>${esc(t("lEindruck"))}</h2><p>${esc(r.gesamteindruck)||"–"}</p>
+  <h2>${esc(t("lEmpf"))}</h2><p><b>${esc(r.empfehlung)||"–"}</b></p>
+  </body></html>`;
+  download(`Interviewbericht_${r.kandidat.name.replace(/\s+/g,"_")}.doc`,html,"application/msword");
+}
+function printSummary(){document.body.dataset.printmode="view";window.print();}
+function printLeitfaden(){
+  const fachQs=fachFragen.filter(f=>f.frage.trim());
+  if(!guide.length&&!fachQs.length){alert(lang==="de"?"Bitte zuerst Fragen auswählen.":"Please select questions first.");return;}
+  const plan=buildPlan();
+  const pl=id=>{const p=plan.find(x=>x.id===id);return p?` (${p.von}–${p.bis})`:"";};
+  const qBlock=q=>`<div class="pq"><b>${esc(qF(q))}</b>${q.hinweis?`<div class="ph">&#128161; ${esc(qH(q))}</div>`:""}<div class="ph" style="margin-top:6px">${lang==="de"?"Bewertung":"Rating"}: &#9744;1 &#9744;2 &#9744;3 &#9744;4 &nbsp; ${t("notes")}:</div></div>`;
+  $("printLeitfaden").innerHTML=`<h1>HR Interview Cockpit</h1>
+   <div class="pmeta"><b>${esc($("kName").value)}</b> – ${esc($("kPos").value)} · ${esc(selDate||"")} ${esc(selTime||"")} · ${esc($("kInt").value||"")}</div>
+   <div class="pph">${esc(pname("start"))}${pl("start")}</div>${t("check_start").map(c=>`<div class="ph">&#9744; ${esc(c)}</div>`).join("")}
+   <div class="pph">${esc(pname("cv"))}${pl("cv")}</div>${guide.filter(q=>q.phase==="cv").map(qBlock).join("")}
+   <div class="pph">${esc(pname("fach"))}${pl("fach")}</div>${fachQs.map(f=>qBlock({frage:f.frage,hinweis:f.hinweis})).join("")||'<div class="ph">–</div>'}
+   <div class="pph">${esc(pname("diag"))}${pl("diag")}</div>${guide.filter(q=>q.phase!=="cv").map(qBlock).join("")}
+   <div class="pph">${esc(pname("rahmen"))}${pl("rahmen")}</div>${RFIELDS.map(f=>`<div class="pq" style="padding-bottom:18px"><b>${esc(t("rf_"+f))}:</b></div>`).join("")}
+   <div class="pph">${esc(pname("ende"))}${pl("ende")}</div>${t("check_ende").map(c=>`<div class="ph">&#9744; ${esc(c)}</div>`).join("")}`;
+  document.body.dataset.printmode="leitfaden";window.print();
+}
+window.addEventListener("afterprint",()=>{delete document.body.dataset.printmode;});
+
+/* ================= KI: Bericht & Mail ================= */
+const verbalNote=v=>{
+  if(lang==="en")return v>=3.5?"very strong":v>=2.8?"strong":v>=2?"solid":"with visible weaknesses";
+  return v>=3.5?"sehr stark":v>=2.8?"stark":v>=2?"solide":"mit erkennbaren Schwächen";
+};
+async function generateReport(){
+  const qs=qItems();
+  const rated=qs.filter(it=>answers[it.q.id].rating!=null);
+  if(!rated.length){alert(lang==="de"?"Noch keine Bewertungen vorhanden.":"No ratings yet.");return;}
+  $("draftBtn").disabled=true;
+  try{
+    if(getKey()){
+      $("draftStatus").textContent="…";
+      const daten=qs.map(it=>{const a=answers[it.q.id];return `[${it.q.cluster}] ${it.q.frage} → ${a.skipped?"übersprungen":a.rating??"-"}${a.note?" | "+a.note:""}`;}).join("\n");
+      const outLang=lang==="de"?"auf Deutsch":"in English";
+      const prompt=`Du bist HR-Experte. Formuliere aus diesen Interviewdaten (Bewertungsskala 1-4) einen sachlichen Gesamteindruck ${outLang} (150-200 Wörter, professionell, nur auf Bewertungen und Notizen gestützt, keine Spekulation, keine Einstellungsempfehlung).\nKandidat: ${$("kName").value}, Position: ${$("kPos").value}\n${daten}\nAntworte nur mit dem Fließtext.`;
+      $("sEindruck").value=(await callClaude(prompt,800)).trim();
+      $("draftStatus").textContent=lang==="de"?"✓ Entwurf erstellt – bitte prüfen. Die Bewertung bleibt bei Ihnen.":"✓ Draft created – please review. The judgement stays with you.";
+    }else{
+      const cavg=clusterAverages();
+      const teile=Object.entries(cavg).filter(([,v])=>v!=null).map(([c,v])=>`${c}: ${verbalNote(v)} (Ø ${v.toFixed(1)}/4)`);
+      $("sEindruck").value=`${$("kName").value} – ${$("kPos").value}: ${teile.join("; ")}.`;
+      $("draftStatus").textContent=lang==="de"?"✓ Demo-Entwurf – mit API-Key ausformuliert.":"✓ Demo draft – full text with API key.";
+    }
+    autoSave();
+  }catch(e){$("draftStatus").innerHTML=`<span style="color:var(--red)">${esc(e.message)}</span>`;}
+  $("draftBtn").disabled=false;
+}
+async function generateMail(){
+  const qs=qItems();
+  const rated=qs.filter(it=>answers[it.q.id].rating!=null);
+  if(!rated.length){alert(lang==="de"?"Noch keine Bewertungen vorhanden.":"No ratings yet.");return;}
+  $("mailBtn").disabled=true;
+  const cavg=clusterAverages();
+  const an=$("mailTo").value.trim();
+  const clusterZeilen=Object.entries(cavg).filter(([,v])=>v!=null).map(([c,v])=>`- ${c}: ${verbalNote(v)} (Ø ${v.toFixed(1)}/4)`).join("\n");
+  const outLang=lang==="de"?"auf Deutsch":"in English";
+  try{
+    if(getKey()){
+      $("mailStatus").textContent="…";
+      const notizen=qs.filter(it=>answers[it.q.id].note).map(it=>`[${it.q.cluster}] ${it.q.frage} → ${answers[it.q.id].note}`).join("\n");
+      const prompt=`Formuliere eine professionelle interne E-Mail ${outLang} vom Recruiter (${$("kInt").value||"Recruiting"}) an den Hiring Manager${an?" ("+an+")":""} mit Feedback zum Erstgespräch.\nKandidat: ${$("kName").value}, Position: ${$("kPos").value}, Interview am ${selDate||""}.\nBewertungen (1-4):\n${clusterZeilen}\nNotizen:\n${notizen||"–"}\nGesamteindruck: ${$("sEindruck").value||"–"}\nEmpfehlung (wörtlich übernehmen): ${$("sEmpfehlung").value||"noch offen"}\nOffene Themen für das Zweitgespräch: ${$("sChallenge").value||"–"}\n\n120-180 Wörter, sachlich, am Ende Vorschlag zur Terminierung des Zweitgesprächs, Grußformel mit Namen, keine Bewertungen erfinden. NUR der E-Mail-Text ohne Betreff.`;
+      $("mailDraft").value=(await callClaude(prompt,700)).trim();
+      $("mailStatus").textContent="✓";
+    }else{
+      $("mailDraft").value=`Hallo${an?" "+an:""},\n\nam ${selDate||""} habe ich ${$("kName").value} für die Position "${$("kPos").value}" interviewt:\n\n${clusterZeilen}\n\n${$("sEindruck").value?$("sEindruck").value+"\n\n":""}${$("sChallenge").value?(lang==="de"?"Fürs Zweitgespräch offen: ":"Open for 2nd interview: ")+$("sChallenge").value+"\n\n":""}${lang==="de"?"Meine Empfehlung":"My recommendation"}: ${$("sEmpfehlung").value||"–"}.\n\nViele Grüße\n${$("kInt").value||""}`;
+      $("mailStatus").textContent=lang==="de"?"✓ Demo-Entwurf":"✓ Demo draft";
+    }
+  }catch(e){$("mailStatus").innerHTML=`<span style="color:var(--red)">${esc(e.message)}</span>`;}
+  $("mailBtn").disabled=false;
+}
+function openMail(){
+  if(!$("mailDraft").value.trim()){alert(lang==="de"?"Bitte zuerst einen Entwurf erstellen.":"Please create a draft first.");return;}
+  const s=encodeURIComponent(`${t("mailSubHm")}: ${$("kName").value} – ${$("kPos").value}`);
+  location.href=`mailto:?subject=${s}&body=${encodeURIComponent($("mailDraft").value)}`;
+}
+function copyMail(){
+  if(!$("mailDraft").value.trim())return;
+  navigator.clipboard.writeText($("mailDraft").value).then(()=>{$("mailStatus").textContent="✓";}).catch(()=>{$("mailDraft").select();document.execCommand("copy");$("mailStatus").textContent="✓";});
+}
+
+/* ================= Auto-Save, Team, DSGVO ================= */
+const LS_KEY="hrcockpit-interviews";
+const resKey=r=>r.kandidat.name+"|"+(r.kandidat.datum||"");
+const gesamtAvg=c=>{const v=Object.values(c.clusterAvg||{}).filter(x=>x!=null);return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):"–";};
+function loadArchive(){try{return JSON.parse(localStorage.getItem(LS_KEY))||[]}catch(_){return[]}}
+function saveArchive(l){try{localStorage.setItem(LS_KEY,JSON.stringify(l))}catch(_){}}
+async function writeToFolder(r){
+  if(!dirHandle)return;
+  try{const fh=await dirHandle.getFileHandle(fileNameFor(r),{create:true});
+  const w=await fh.createWritable();await w.write(JSON.stringify(r,null,2));await w.close();}catch(_){}
+}
+async function chooseFolder(){
+  if(!window.showDirectoryPicker){alert(lang==="de"?"Nur Chrome/Edge unterstützen Ordner-Zugriff.":"Only Chrome/Edge support folder access.");return;}
+  try{dirHandle=await window.showDirectoryPicker({mode:"readwrite"});try{await idbSet("dir",dirHandle);}catch(_){}autoSave();updateSyncInfo();updateConnectBar();}catch(_){}
+}
+function autoSave(){
+  if(!window._finished)return;
+  const r=currentResult();if(!r.kandidat.name)return;
+  const list=loadArchive();
+  const i=list.findIndex(x=>resKey(x)===resKey(r));
+  if(i>=0)list[i]=r;else list.push(r);
+  saveArchive(list);writeToFolder(r);
+  if(ctx){
+    const st=stellen.find(s=>s.id===ctx.stelleId);
+    const k=st&&st.kandidaten.find(x=>x.id===ctx.kandId);
+    if(k){k.challenge=$("sChallenge").value;persistStellen();}
+  }
+  const n=loadArchive().length;
+  $("autosaveInfo").innerHTML=`&#10003; ${lang==="de"?"Automatisch gespeichert":"Auto-saved"}${dirHandle?` – „${esc(dirHandle.name)}“ + Browser`:" (Browser)"} (${n})`;
+}
+function autoSaveSoon(){clearTimeout(asTimer);asTimer=setTimeout(autoSave,800);}
+function tooOld(r){const d=new Date(r.kandidat.datum||r.erstellt||Date.now());return (Date.now()-d.getTime())/86400000>183;}
+const fristBadge=r=>tooOld(r)?` <span class="chip" style="background:var(--red);font-size:10px;vertical-align:middle">${t("frist")}</span>`:"";
+async function deleteTeamFile(i){
+  const r=teamArchiv[i];if(!r||!r._file||!dirHandle)return;
+  if(!confirm((lang==="de"?"Endgültig löschen (DSGVO): ":"Delete permanently (GDPR): ")+r.kandidat.name+"?"))return;
+  try{await dirHandle.removeEntry(r._file);}catch(e){alert(e.message);return;}
+  teamArchiv.splice(i,1);renderTeamArchive();
+}
+async function scanTeamFolder(){
+  if(!dirHandle){await connectAndSync();}else await syncNow();
+  renderTeamArchive();
+}
+function renderTeamArchive(){
+  if(!$("teamBox"))return;
+  const n=teamArchiv.length;
+  $("archSub").textContent=n?`${n} Interviews${dirHandle?" · "+dirHandle.name:""}`:"";
+  if(!n){$("teamBox").innerHTML=`<div class="hint-empty">${dirHandle?(lang==="de"?"Keine Interviews im Team-Ordner.":"No interviews in team folder."):(lang==="de"?"Team-Ordner durchsuchen oder JSONs laden, um das Archiv zu füllen.":"Scan the team folder or load JSONs.")}</div>`;return;}
+  $("teamBox").innerHTML=`<table><tr><th>${lang==="de"?"Kandidat/in":"Candidate"}</th><th>Position</th><th>${lang==="de"?"Datum":"Date"}</th><th>Interviewer</th><th>&Oslash;</th><th>${t("lEmpf")}</th><th></th></tr>`+
+    teamArchiv.map((r,i)=>{
+      const st=r.stelleId&&stellen.find(s=>s.id===r.stelleId);
+      return `<tr>
+      <td><b>${esc(r.kandidat.name)}</b>${fristBadge(r)}</td><td>${esc(r.kandidat.position)}</td><td>${esc(r.kandidat.datum||"–")}</td>
+      <td>${esc(r.kandidat.interviewer||"–")}</td><td>${gesamtAvg(r)}</td><td style="font-size:12px">${esc(r.empfehlung||"–")}</td>
+      <td style="white-space:nowrap">${st?`<button class="mini" title="${lang==="de"?"Zur Entscheidung der Stelle":"To vacancy decision"}" onclick="goDecide('${st.id}')">&#9878;</button> `:""}<button class="mini" title="DSGVO-Löschung" onclick="deleteTeamFile(${i})">&#10005;</button></td>
+    </tr>`;}).join("")+"</table>"+
+    (teamArchiv.some(tooOld)?`<div style="font-size:12.5px;color:var(--red);margin-top:8px">${t("fristWarn")}</div>`:"");
+}
+$("fileJson").addEventListener("change",e=>{
+  const files=[...e.target.files];let done=0;
+  files.forEach(f=>{
+    const rd=new FileReader();
+    rd.onload=ev=>{
+      try{
+        const j=JSON.parse(ev.target.result);
+        if(j.app==="hr-interview-tool"){
+          const list=loadArchive().filter(x=>resKey(x)!==resKey(j));list.push(j);saveArchive(list);
+          teamArchiv=teamArchiv.filter(x=>resKey(x)!==resKey(j));teamArchiv.push(j);
+          writeToFolder(j);
+        }else if(j.app==="hr-stelle"&&j.id){
+          const i=stellen.findIndex(s=>s.id===j.id);if(i>=0)stellen[i]=j;else stellen.push(j);persistStellen();
+        }
+      }catch(_){}
+      if(++done===files.length){
+        teamArchiv.sort((a,b)=>(b.kandidat.datum||"").localeCompare(a.kandidat.datum||""));
+        renderStellen();renderTeamArchive();
+        $("accArchiv").classList.add("open");
+      }
+    };
+    rd.readAsText(f);
+  });
+  e.target.value="";
+});
+
+/* ================= IndexedDB (Ordner-Handle) ================= */
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("hrcockpit",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function idbSet(k,v){const d=await idb();return new Promise((res,rej)=>{const tx=d.transaction("kv","readwrite");tx.objectStore("kv").put(v,k);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}
+async function idbGet(k){const d=await idb();return new Promise((res,rej)=>{const g=d.transaction("kv").objectStore("kv").get(k);g.onsuccess=()=>res(g.result);g.onerror=()=>rej(g.error);});}
+
+/* ================= Stellen (Vakanzen) ================= */
+const LS_STELLEN="hrcockpit-stellen";
+let stellen=(function(){try{return JSON.parse(localStorage.getItem(LS_STELLEN))||[]}catch(_){return[]}})();
+let ctx=null; /* {stelleId,kandId} */
+function persistStellen(){try{localStorage.setItem(LS_STELLEN,JSON.stringify(stellen))}catch(_){}}
+function stelleFile(st){return `Stelle_${st.titel.replace(/[^\w\-äöüÄÖÜß]+/g,"_")}_${st.id}.json`;}
+async function writeStelleToFolder(st){
+  if(!dirHandle)return;
+  try{const fh=await dirHandle.getFileHandle(stelleFile(st),{create:true});
+  const w=await fh.createWritable();await w.write(JSON.stringify(st,null,2));await w.close();}catch(_){}
+}
+function saveStelle(st){
+  st.geaendert=new Date().toISOString();
+  const i=stellen.findIndex(x=>x.id===st.id);
+  if(i>=0)stellen[i]=st;else stellen.push(st);
+  persistStellen();writeStelleToFolder(st);renderStellen();
+}
+function newStelle(){
+  const titel=(prompt(lang==="de"?"Titel der Stelle:":"Vacancy title:")||"").trim();if(!titel)return;
+  saveStelle({app:"hr-stelle",version:1,id:"S"+Date.now(),titel,anzeige:"",vorlage:null,status:"offen",kandidaten:[],entscheidung:null,erstellt:new Date().toISOString()});
+}
+async function deleteStelle(id){
+  const st=stellen.find(s=>s.id===id);if(!st)return;
+  if(!confirm((lang==="de"?"Stelle inkl. Kandidatenliste löschen: ":"Delete vacancy: ")+st.titel+"?"))return;
+  stellen=stellen.filter(s=>s.id!==id);persistStellen();
+  if(dirHandle)try{await dirHandle.removeEntry(stelleFile(st))}catch(_){}
+  renderStellen();
+}
+function addKandidat(sid){
+  const st=stellen.find(s=>s.id===sid);if(!st)return;
+  const name=(prompt(lang==="de"?"Name des Kandidaten:":"Candidate name:")||"").trim();if(!name)return;
+  const k={id:"K"+Date.now(),name,status:"angelegt"};
+  st.kandidaten.push(k);saveStelle(st);
+  openKandidat(sid,k.id);
+}
+function resetInterviewState(){
+  selectedIds.clear();guide=[];fachFragen=[];answers={};rahmen={};checklists={start:[],ende:[]};
+  items=[];itemIdx=0;ivStart=null;window._finished=false;window._profil=[];
+  if(tickHandle)clearInterval(tickHandle);
+  ["sEindruck","mailDraft","sChallenge"].forEach(id=>{const el=$(id);if(el)el.value="";});
+  $("sEmpfehlung").selectedIndex=0;
+}
+function openKandidat(sid,kid){
+  const st=stellen.find(s=>s.id===sid);if(!st)return;
+  const k=st.kandidaten.find(x=>x.id===kid);if(!k)return;
+  ctx={stelleId:sid,kandId:kid};
+  resetInterviewState();
+  $("kName").value=k.name;$("kPos").value=st.titel;
+  if(st.anzeige)$("jobAd").value=st.anzeige;
+  if(st.vorlage){
+    (st.vorlage.fragen||[]).forEach(f=>{
+      let q=pool.find(p=>p.frage===f.frage);
+      if(!q){q={...f};pool.push(q);}
+      if(!selectedIds.has(q.id)){selectedIds.add(q.id);guide.push(q);}
+    });
+    fachFragen=(st.vorlage.fach||[]).map(f=>({...f}));
+  }
+  gotoStep(0);
+}
+function statusChip(s){
+  const map={offen:["var(--blue)","offen","open"],besetzt:["var(--green)","besetzt","filled"],angelegt:["#8A97A3","angelegt","created"],interviewt:["var(--blue)","interviewt","interviewed"],"zweitgespräch":["#7B4FA6","2. Gespräch ✓","2nd interview ✓"],"ausgewählt":["var(--green)","ausgewählt ✓","selected ✓"],abgesagt:["var(--red)","abgesagt","rejected"]};
+  const m=map[s]||["#8A97A3",s,s];
+  return `<span class="chip" style="background:${m[0]};font-size:11px">${lang==="de"?m[1]:m[2]}</span>`;
+}
+function renderStellen(){
+  if(!$("stellenList"))return;
+  $("stellenList").innerHTML=stellen.length?stellen.map(st=>{
+    const nI=st.kandidaten.filter(k=>k.ivKey).length;
+    return `<div style="border:1px solid var(--border);border-radius:3px;padding:14px 16px;margin-bottom:12px">
+     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+       <b style="font-size:15.5px;color:var(--blue-dark)">${esc(st.titel)}</b> ${statusChip(st.status)}
+       <span style="color:var(--muted);font-size:12.5px;flex:1">${st.kandidaten.length} ${lang==="de"?"Kandidaten":"candidates"} · ${nI} ${lang==="de"?"interviewt":"interviewed"}</span>
+       ${st.status==="offen"?`<button class="btn secondary" style="padding:6px 12px;font-size:12.5px" onclick="addKandidat('${st.id}')">+ ${lang==="de"?"Kandidat":"Candidate"}</button>`:""}
+       ${nI?`<button class="btn" style="padding:6px 12px;font-size:12.5px" onclick="goDecide('${st.id}')">&#9878; ${lang==="de"?"Vergleich & Entscheidung":"Compare & decide"}</button>`:""}
+       ${nI?`<button class="btn ghost" style="padding:6px 12px;font-size:12.5px" onclick="exportBRListe('${st.id}')" title="Excel im Format 'Kandidaten - BR-Anhörung'">BR-Liste</button>`:""}
+       <button class="mini" title="Löschen" onclick="deleteStelle('${st.id}')">&#10005;</button>
+     </div>
+     ${st.kandidaten.length?`<table style="margin-top:10px">${st.kandidaten.map(k=>{
+        const frist=k.abgesagtAm&&(Date.now()-new Date(k.abgesagtAm).getTime())/864e5>183;
+        return `<tr>
+        <td style="width:32%"><b>${esc(k.name)}</b>${frist?' <span class="chip" style="background:var(--red);font-size:10px">'+t("frist")+"</span>":""}</td>
+        <td>${statusChip(k.status)}${k.abgesagtAm?` <span style="font-size:11px;color:var(--muted)">${esc(k.abgesagtAm)}</span>`:""}</td>
+        <td style="text-align:right">${k.status==="angelegt"&&st.status==="offen"?`<button class="btn secondary" style="padding:5px 10px;font-size:12px" onclick="openKandidat('${st.id}','${k.id}')">${lang==="de"?"Interview vorbereiten":"Prepare interview"} &rarr;</button>`
+          :(k.status==="interviewt"||k.status==="zweitgespräch")&&st.status==="offen"?`<button class="btn secondary" style="padding:5px 10px;font-size:12px" onclick="goZweit('${st.id}','${k.id}')">${k.zweit?(lang==="de"?"2. Gespräch öffnen":"Open 2nd interview"):(lang==="de"?"Zweitgespräch":"Second interview")+" &rarr;"}</button>`:""}</td>
+      </tr>`;}).join("")}</table>`:""}
+     ${st.entscheidung?`<div style="margin-top:8px;font-size:13px;color:var(--green);font-weight:600">&#10003; ${lang==="de"?"Entschieden am":"Decided on"} ${esc(st.entscheidung.datum)} ${lang==="de"?"für":"for"} <b>${esc(st.entscheidung.name)}</b> (${esc(st.entscheidung.entscheider||"–")})</div>`:""}
+    </div>`;}).join(""):`<div class="hint-empty">${lang==="de"?"Noch keine Stellen angelegt. Lege die erste Stelle an – Kandidaten, Leitfaden und Entscheidung hängen daran.":"No vacancies yet."}</div>`;
+  updateConnectBar();
+}
+function goStellen(){
+  document.querySelectorAll(".step").forEach(s=>s.classList.remove("active"));
+  show("stellen");renderStellen();renderTeamArchive();
+}
+
+/* ================= Entscheidung ================= */
+let decSid=null,decChartObj=null;
+function allInterviews(){
+  const map={};
+  loadArchive().forEach(r=>map[resKey(r)]=r);
+  teamArchiv.forEach(r=>{const k=resKey(r);
+    if(!map[k]||(r.geaendert||r.erstellt||"")>(map[k].geaendert||map[k].erstellt||""))map[k]=r;});
+  return map;
+}
+/* ================= Zweitgespräch ================= */
+let zwCtx=null,zwState=null;
+function goZweit(sid,kid){
+  const st=stellen.find(s=>s.id===sid);const k=st&&st.kandidaten.find(x=>x.id===kid);if(!k)return;
+  zwCtx={sid,kid};
+  zwState=k.zweit?JSON.parse(JSON.stringify(k.zweit)):{themen:k.challenge||"",fachaufgabe:"",notizen:"",krit:null,pot:null,eindruck:"",datum:new Date().toISOString().slice(0,10),interviewer:""};
+  document.querySelectorAll(".step").forEach(s=>s.classList.remove("active"));
+  show("zweit");renderZweit();
+}
+function captureZw(){
+  [["zwThemen","themen"],["zwFach","fachaufgabe"],["zwNotizen","notizen"],["zwEindruck","eindruck"],["zwDatum","datum"],["zwInt","interviewer"]].forEach(([i,f])=>{const el=$(i);if(el)zwState[f]=el.value;});
+}
+function zwRate(f,v){captureZw();zwState[f]=zwState[f]===v?null:v;renderZweit();}
+function renderZweit(){
+  const st=stellen.find(s=>s.id===zwCtx.sid);const k=st.kandidaten.find(x=>x.id===zwCtx.kid);
+  $("zwTitle").innerHTML=`${lang==="de"?"Zweitgespräch":"Second interview"}: ${esc(k.name)} <span style="font-weight:400;font-size:12.5px;color:var(--muted)">· ${esc(st.titel)}</span>`;
+  const rate=(f,label)=>`<label>${esc(label)}</label><div class="ratingrow" style="max-width:400px">${[1,2,3,4].map(v=>`<button class="rate r${v} ${zwState[f]===v?"sel":""}" onclick="zwRate('${f}',${v})">${v}<small>${esc(t("rate"+v))}</small></button>`).join("")}</div>`;
+  const an=zwState.analyse;
+  const anHtml=an?`
+   <div style="font-weight:700;color:var(--blue-dark);margin:4px 0 6px">${lang==="de"?"Fachliche Analyse: Anforderungen ↔ CV":"Technical analysis: requirements ↔ CV"} <span style="font-weight:400;font-size:11px;color:var(--muted)">${lang==="de"?"(kein Scoring – nur Prüfpunkte)":"(no scoring)"}</span></div>
+   <table style="margin-bottom:10px"><tr><th>${lang==="de"?"Anforderung":"Requirement"}</th><th>Status</th><th>${lang==="de"?"Technische Prüffrage":"Technical probe"}</th></tr>${(an.abgleich||[]).map(a=>{
+     const col=/^beleg|^evidenc/.test(a.status)?"var(--green)":/^unklar|^unclear/.test(a.status)?"var(--yellow)":"var(--red)";
+     return `<tr><td>${esc(a.anforderung)}</td><td><span class="chip" style="background:${col};font-size:11px">${esc(a.status)}</span></td><td style="font-size:13px">${esc(a.frage||"–")}</td></tr>`;}).join("")}</table>
+   ${(an.fachfragen||[]).length?`<div style="font-size:13px;margin-bottom:8px"><b>${lang==="de"?"Vertiefende Fachfragen":"Deep-dive technical questions"}:</b><ul style="margin:4px 0 0 18px">${an.fachfragen.map(f=>`<li>${esc(f.frage)}${f.hinweis?` <span style="color:var(--muted);font-size:11.5px">(${esc(f.hinweis)})</span>`:""}</li>`).join("")}</ul></div>`:""}
+   <div class="btnrow" style="margin-bottom:16px"><button class="btn secondary" onclick="zwUebernehmen()">${lang==="de"?"Offene Punkte in „abzuprüfen“ übernehmen":"Adopt open items"}</button></div>`
+  :`<div class="btnrow" style="margin-bottom:16px;align-items:stretch">
+   ${k.cv?"":`<textarea id="zwCv" rows="3" style="flex:1;min-width:260px" placeholder="${lang==="de"?"CV-Text einfügen (kein CV aus dem Erstgespräch hinterlegt)…":"Paste CV text…"}"></textarea>`}
+   <button class="btn secondary" id="zwAnBtn" onclick="zwAnalyse()">&#10024; ${lang==="de"?"CV ↔ Anforderungen analysieren (KI)":"Analyze CV ↔ requirements (AI)"}</button>
+   <span id="zwAnStatus" style="font-size:12px;color:var(--muted);align-self:center"></span></div>`;
+  $("zweitBody").innerHTML=`
+   ${k.challenge?`<div class="hintbox">&#128161; <b>${lang==="de"?"Challenge aus dem Erstgespräch":"Carry-over from the first interview"}:</b> ${esc(k.challenge)}</div>`:""}
+   ${anHtml}
+   <div class="grid2">
+    <div><label>${lang==="de"?"Datum":"Date"}</label><input type="text" id="zwDatum" value="${esc(zwState.datum)}"></div>
+    <div><label>Interviewer</label><input type="text" id="zwInt" value="${esc(zwState.interviewer)}"></div>
+   </div>
+   <div style="margin-top:12px"><label>${lang==="de"?"In diesem Zweitgespräch abzuprüfen":"To verify in this interview"}</label><textarea id="zwThemen" rows="3">${esc(zwState.themen)}</textarea></div>
+   <div style="margin-top:12px"><label>${lang==="de"?"Fachaufgabe (ad hoc oder mit Vorbereitung)":"Technical task"}</label><textarea id="zwFach" rows="2">${esc(zwState.fachaufgabe)}</textarea></div>
+   <div style="margin-top:12px"><label>${lang==="de"?"Notizen Zweitgespräch":"Notes second interview"}</label><textarea id="zwNotizen" rows="5">${esc(zwState.notizen)}</textarea></div>
+   <div style="margin-top:14px" class="grid2">
+     <div>${rate("krit",lang==="de"?"Bewertung Interviewkriterien (1–4)":"Interview criteria (1–4)")}</div>
+     <div>${rate("pot",lang==="de"?"Bewertung Potentialindikatoren (1–4)":"Potential indicators (1–4)")}</div>
+   </div>
+   <div style="margin-top:12px"><label>${lang==="de"?"Gesamteindruck nach dem Zweitgespräch (Debrief)":"Overall impression (debrief)"}</label><textarea id="zwEindruck" rows="3">${esc(zwState.eindruck)}</textarea></div>
+   <div class="btnrow" style="margin-top:14px">
+     <button class="btn" onclick="saveZweit()">${lang==="de"?"Zweitgespräch speichern":"Save second interview"}</button>
+     <span id="zwStatus" style="color:var(--green);font-weight:600;font-size:13px;align-self:center"></span>
+   </div>`;
+}
+async function zwAnalyse(){
+  const st=stellen.find(s=>s.id===zwCtx.sid);const k=st.kandidaten.find(x=>x.id===zwCtx.kid);
+  const pasted=$("zwCv")?$("zwCv").value.trim():"";
+  const cv=(k.cv||pasted||"").slice(0,6000);
+  const ad=(st.anzeige||"").slice(0,4000);
+  if(!cv){alert(lang==="de"?"Kein CV hinterlegt – bitte CV-Text einfügen.":"No CV available – please paste the CV text.");return;}
+  if(!getKey()){alert(lang==="de"?"API-Key nötig (⚙ oben rechts).":"API key required (⚙ top right).");return;}
+  if(pasted&&!k.cv){k.cv=cv;persistStellen();}
+  captureZw();
+  const btn=$("zwAnBtn");if(btn)btn.disabled=true;
+  const stat=$("zwAnStatus");if(stat)stat.textContent="…";
+  try{
+    const outLang=lang==="de"?"auf Deutsch":"in English";
+    const prompt=`Du bereitest ein TECHNISCHES Zweitgespräch vor. Analysiere den Lebenslauf gegen die Anforderungen der Stelle, ${outLang}.\nStelle: ${st.titel}\n${ad?"Stellenanzeige:\n"+ad+"\n":""}Lebenslauf:\n${cv}\n\nLiefere: (1) Abgleich der 6-8 wichtigsten fachlichen Anforderungen (belegt/unklar/nicht erkennbar) mit je einer technischen Prüffrage bei nicht belegten Punkten; (2) genau 4 vertiefende Fachfragen zu konkreten Technologien/Projekten aus dem CV. KEINE Eignungsbewertung, kein Scoring.\nAntworte NUR zeilenbasiert:\nABGLEICH: <Anforderung> | <belegt|unklar|nicht erkennbar> | <technische Prüffrage oder leer>\nFACHFRAGE: <Frage> | <CV-Bezug>`;
+    const res=await callClaude(prompt,2000);
+    const ab=[],ff=[];
+    res.split("\n").forEach(l=>{
+      l=l.trim();
+      if(/^ABGLEICH\s*:/i.test(l)){const p=l.replace(/^ABGLEICH\s*:/i,"").split("|").map(s=>s.trim());if(p[0])ab.push({anforderung:p[0],status:(p[1]||"unklar").toLowerCase(),frage:p[2]||""});}
+      else if(/^FACHFRAGE\s*:/i.test(l)){const p=l.replace(/^FACHFRAGE\s*:/i,"").split("|").map(s=>s.trim());if(p[0])ff.push({frage:p[0],hinweis:p[1]||""});}
+    });
+    if(!ab.length&&!ff.length)throw new Error(lang==="de"?"KI-Antwort nicht interpretierbar – bitte erneut versuchen.":"Could not interpret AI answer.");
+    zwState.analyse={abgleich:ab,fachfragen:ff};
+    renderZweit();
+  }catch(e){if(stat)stat.textContent=e.message;if(btn)btn.disabled=false;}
+}
+function zwUebernehmen(){
+  captureZw();
+  const a=zwState.analyse;if(!a)return;
+  const add=[...(a.abgleich||[]).filter(x=>!/^beleg|^evidenc/.test(x.status)).map(x=>"– "+(x.frage||x.anforderung)),...(a.fachfragen||[]).map(f=>"– "+f.frage)];
+  if(!add.length)return;
+  zwState.themen=(zwState.themen?zwState.themen+"\n":"")+add.join("\n");
+  renderZweit();
+}
+function saveZweit(){
+  captureZw();
+  const st=stellen.find(s=>s.id===zwCtx.sid);const k=st.kandidaten.find(x=>x.id===zwCtx.kid);
+  k.zweit=JSON.parse(JSON.stringify(zwState));
+  if(k.status==="interviewt")k.status="zweitgespräch";
+  saveStelle(st);
+  $("zwStatus").textContent="✓ "+(lang==="de"?"gespeichert – fließt in die Entscheidung ein":"saved");
+}
+function exportBRListe(sid){
+  const st=stellen.find(s=>s.id===sid);if(!st)return;
+  const ivs=allInterviews();
+  const data=[["Kandidat","Datum Erstgespräch","Entscheidung nach Erstgespräch","Entscheidung nach Zweitgespräch","Begründungstext für Anhörung bei BR"]];
+  st.kandidaten.forEach(k=>{
+    const r=k.ivKey&&ivs[k.ivKey];
+    data.push([k.name,
+      r?(r.kandidat.datum||""):"",
+      r?(r.empfehlung||""):"",
+      k.status==="ausgewählt"?"Einstellung beabsichtigt":k.status==="abgesagt"?"Absage":"",
+      st.entscheidung&&st.entscheidung.kandId===k.id?(st.entscheidung.begruendung||""):""]);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  ws["!cols"]=[{wch:24},{wch:16},{wch:30},{wch:26},{wch:70}];
+  const wb2=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb2,ws,"Kandidaten - BR-Anhörung");
+  XLSX.writeFile(wb2,`BR-Anhoerung_${st.titel.replace(/[^\w\-äöüÄÖÜß]+/g,"_")}.xlsx`);
+}
+function goDecide(sid){decSid=sid;document.querySelectorAll(".step").forEach(s=>s.classList.remove("active"));show("decide");renderDecide();}
+function renderDecide(){
+  const st=stellen.find(s=>s.id===decSid);if(!st)return;
+  $("decTitle").innerHTML=`&#9878; ${lang==="de"?"Kandidatenvergleich & Entscheidung":"Candidate comparison & decision"}: ${esc(st.titel)}`;
+  const ivs=allInterviews();
+  const cands=st.kandidaten.filter(k=>k.ivKey&&ivs[k.ivKey]).map(k=>({k,r:ivs[k.ivKey]}));
+  const allClusters=[...new Set(cands.flatMap(c=>Object.keys(c.r.clusterAvg||{})))];
+  if(decChartObj){decChartObj.destroy();decChartObj=null;}
+  if(cands.length&&allClusters.length){
+    decChartObj=new Chart($("decChart"),{type:"radar",
+      data:{labels:allClusters,datasets:cands.map((c,i)=>{
+        const col=CLUSTER_COLORS[i%CLUSTER_COLORS.length];
+        return{label:c.k.name,data:allClusters.map(cl=>c.r.clusterAvg[cl]??0),backgroundColor:col+"22",borderColor:col,pointBackgroundColor:col,borderWidth:2};})},
+      options:{responsive:true,maintainAspectRatio:false,animation:false,scales:{r:{min:0,max:4,ticks:{stepSize:1}}},plugins:{legend:{position:"bottom"}}}});
+  }
+  $("decTable").innerHTML=cands.length?`<table><tr><th>${t("cluster")}</th>${cands.map(c=>`<th>${esc(c.k.name)}</th>`).join("")}</tr>`+
+    allClusters.map(cl=>`<tr><td>${esc(cl)}</td>${cands.map(c=>{
+      const v=c.r.clusterAvg[cl];
+      return `<td><span class="chip ${v==null?"cx":"c"+Math.min(4,Math.round(v))}">${v==null?"–":v.toFixed(1)}</span></td>`;}).join("")}</tr>`).join("")+
+    `<tr><td><b>&Oslash;</b></td>${cands.map(c=>`<td><b>${gesamtAvg(c.r)}</b></td>`).join("")}</tr>`+
+    `<tr><td><b>${lang==="de"?"2. Gespräch – Kriterien":"2nd – criteria"}</b></td>${cands.map(c=>`<td>${c.k.zweit&&c.k.zweit.krit?`<span class="chip c${c.k.zweit.krit}">${c.k.zweit.krit}</span>`:"–"}</td>`).join("")}</tr>`+
+    `<tr><td><b>${lang==="de"?"2. Gespräch – Potenzial":"2nd – potential"}</b></td>${cands.map(c=>`<td>${c.k.zweit&&c.k.zweit.pot?`<span class="chip c${c.k.zweit.pot}">${c.k.zweit.pot}</span>`:"–"}</td>`).join("")}</tr>`+
+    `<tr><td><b>${t("lEmpf")}</b></td>${cands.map(c=>`<td style="font-size:12px">${esc(c.r.empfehlung||"–")}</td>`).join("")}</tr></table>`:
+    `<div class="hint-empty">${lang==="de"?"Noch keine abgeschlossenen Interviews zu dieser Stelle. Ggf. erst synchronisieren (⟳).":"No completed interviews for this vacancy yet."}</div>`;
+  $("decPick").innerHTML=st.kandidaten.map(k=>{
+    const r=k.ivKey&&ivs[k.ivKey];
+    return `<label style="display:flex;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--border);border-radius:3px;margin-bottom:6px;font-size:14px;text-transform:none;letter-spacing:0;color:var(--text);font-weight:400;cursor:pointer">
+      <input type="radio" name="decWinner" value="${k.id}" ${st.entscheidung&&st.entscheidung.kandId===k.id?"checked":""} ${r?"":"disabled"}>
+      <b>${esc(k.name)}</b>
+      <span class="chip ${r?"c"+Math.min(4,Math.max(1,Math.round(+gesamtAvg(r)||0))):"cx"}">${r?gesamtAvg(r):"–"}</span>
+      ${k.zweit?`<span class="chip" style="background:#7B4FA6;font-size:10px">2G K${k.zweit.krit??"–"} / P${k.zweit.pot??"–"}</span>`:""}
+      <span style="color:var(--muted);font-size:12px">${r?esc(r.empfehlung||""):(lang==="de"?"kein Interview":"no interview")}</span></label>`;}).join("");
+  if(st.entscheidung){$("decBegr").value=st.entscheidung.begruendung||"";$("decWho").value=st.entscheidung.entscheider||"";}
+  $("decMailCard").style.display=st.entscheidung?"block":"none";
+}
+async function generateBRMail(){
+  const st=stellen.find(s=>s.id===decSid);if(!st||!st.entscheidung)return;
+  const ivs=allInterviews();
+  const k=st.kandidaten.find(x=>x.id===st.entscheidung.kandId);
+  const r=k&&k.ivKey&&ivs[k.ivKey];
+  const an=$("decMailTo").value.trim();
+  const clusterZeilen=r?Object.entries(r.clusterAvg||{}).filter(([,v])=>v!=null).map(([c,v])=>`- ${c}: ${verbalNote(v)} (Ø ${v.toFixed(1)}/4)`).join("\n"):"";
+  $("decMailBtn").disabled=true;
+  try{
+    if(getKey()){
+      $("decMailStatus").textContent="…";
+      const outLang=lang==="de"?"auf Deutsch":"in English";
+      const prompt=`Formuliere eine formelle E-Mail ${outLang} an den Betriebsrat${an?" (z.Hd. "+an+")":""}: Unterrichtung über die beabsichtigte Einstellung von ${st.entscheidung.name} für die Position "${st.titel}" und Bitte um Zustimmung nach §99 BetrVG.\nProzess: strukturiertes Erst- und Zweitgespräch, Entscheidung am ${st.entscheidung.datum} (Entscheider: ${st.entscheidung.entscheider||"Recruiting"}).\nAuswahlbegründung: ${st.entscheidung.begruendung||"–"}\n${clusterZeilen?"Kompetenzbewertungen (1-4):\n"+clusterZeilen:""}\n\n100-150 Wörter, formell-sachlich, KEINE vertraulichen Gesprächsdetails, Hinweis dass die Bewerbungsunterlagen zur Einsicht bereitliegen, Bitte um Stellungnahme innerhalb einer Woche (§99 Abs. 3 BetrVG). Grußformel mit Namen des Entscheiders. NUR der E-Mail-Text ohne Betreff.`;
+      $("decMailDraft").value=(await callClaude(prompt,700)).trim();
+      $("decMailStatus").textContent="✓";
+    }else{
+      $("decMailDraft").value=`Sehr geehrte${an?"/r "+an:" Damen und Herren des Betriebsrats"},\n\nhiermit unterrichten wir Sie über die beabsichtigte Einstellung von ${st.entscheidung.name} für die Position "${st.titel}" (Entscheidung am ${st.entscheidung.datum} nach Erst- und Zweitgespräch).\n\nAuswahlbegründung:\n${st.entscheidung.begruendung||"–"}\n\nDie Bewerbungsunterlagen liegen zur Einsicht bereit. Wir bitten um Ihre Stellungnahme bzw. Zustimmung gemäß §99 BetrVG innerhalb einer Woche.\n\nMit freundlichen Grüßen\n${st.entscheidung.entscheider||""}`;
+      $("decMailStatus").textContent=lang==="de"?"✓ Demo-Entwurf":"✓ Demo draft";
+    }
+  }catch(e){$("decMailStatus").textContent=e.message;}
+  $("decMailBtn").disabled=false;
+}
+function openBRMail(){
+  const st=stellen.find(s=>s.id===decSid);
+  if(!st||!st.entscheidung||!$("decMailDraft").value.trim()){alert(lang==="de"?"Bitte zuerst den Entwurf erstellen.":"Please create the draft first.");return;}
+  const s=encodeURIComponent(`${t("mailSubBr")}: ${st.entscheidung.name} – ${st.titel} (§99 BetrVG)`);
+  location.href=`mailto:?subject=${s}&body=${encodeURIComponent($("decMailDraft").value)}`;
+}
+function copyBRMail(){
+  if(!$("decMailDraft").value.trim())return;
+  navigator.clipboard.writeText($("decMailDraft").value).then(()=>{$("decMailStatus").textContent="✓";}).catch(()=>{});
+}
+async function decDraft(){
+  const st=stellen.find(s=>s.id===decSid);if(!st)return;
+  const sel=document.querySelector('input[name=decWinner]:checked');
+  if(!sel){alert(lang==="de"?"Bitte zuerst den Kandidaten auswählen.":"Please select the candidate first.");return;}
+  if(!getKey()){alert(lang==="de"?"API-Key nötig (⚙ oben rechts).":"API key required (⚙ top right).");return;}
+  const ivs=allInterviews();
+  const w=st.kandidaten.find(k=>k.id===sel.value);
+  const daten=st.kandidaten.filter(k=>k.ivKey&&ivs[k.ivKey]).map(k=>{
+    const r=ivs[k.ivKey];
+    return `${k.name}${k.id===w.id?" (AUSGEWÄHLT)":""}: `+Object.entries(r.clusterAvg||{}).filter(([,v])=>v!=null).map(([c,v])=>`${c} ${v.toFixed(1)}/4`).join(", ")+(r.empfehlung?` | Empfehlung: ${r.empfehlung}`:"")+(k.zweit?` | 2. Gespräch: Kriterien ${k.zweit.krit??"-"}/4, Potenzial ${k.zweit.pot??"-"}/4${k.zweit.eindruck?", "+k.zweit.eindruck.slice(0,120):""}`:"");
+  }).join("\n");
+  $("decDraftBtn").disabled=true;$("decDraftStatus").textContent="…";
+  try{
+    const outLang=lang==="de"?"auf Deutsch":"in English";
+    const prompt=`Formuliere ${outLang} eine sachliche Auswahlbegründung (100-150 Wörter) für eine Personalentscheidung, AGG-konform: ausschließlich kriterienbezogen auf die strukturierten Interviewbewertungen (Skala 1-4), keine persönlichen Merkmale, keine Vergleiche auf Personenebene außer den Bewertungen.\nStelle: ${st.titel}\nKandidaten und Bewertungen:\n${daten}\nBegründe, warum die Wahl auf ${w.name} fällt. Antworte nur mit dem Text.`;
+    $("decBegr").value=(await callClaude(prompt,600)).trim();
+    $("decDraftStatus").textContent=lang==="de"?"✓ Entwurf – bitte prüfen, Entscheidung bleibt bei Ihnen.":"✓ Draft – please review.";
+  }catch(e){$("decDraftStatus").textContent=e.message;}
+  $("decDraftBtn").disabled=false;
+}
+function saveDecision(){
+  const st=stellen.find(s=>s.id===decSid);if(!st)return;
+  const sel=document.querySelector('input[name=decWinner]:checked');
+  if(!sel){alert(lang==="de"?"Bitte einen Kandidaten auswählen.":"Please select a candidate.");return;}
+  const today=new Date().toISOString().slice(0,10);
+  const w=st.kandidaten.find(k=>k.id===sel.value);
+  st.kandidaten.forEach(k=>{
+    if(k.id===w.id){k.status="ausgewählt";delete k.abgesagtAm;}
+    else if(k.status!=="abgesagt"){k.status="abgesagt";k.abgesagtAm=today;}
+  });
+  st.entscheidung={kandId:w.id,name:w.name,begruendung:$("decBegr").value,entscheider:$("decWho").value,datum:today};
+  st.status="besetzt";
+  saveStelle(st);
+  $("decStatus").innerHTML=`&#10003; ${lang==="de"?`Entscheidung für <b>${esc(w.name)}</b> gespeichert. Für die abgesagten Kandidaten läuft die DSGVO-Löschfrist ab heute. Als Nächstes: BR-Anhörung unten erstellen.`:`Decision for <b>${esc(w.name)}</b> saved. Next: create the works-council notification below.`}`;
+  renderDecide();
+}
+
+/* ================= Sync (Team-Ordner) ================= */
+let lastSync=null;
+function updateSyncInfo(){
+  const el=$("syncInfo");if(!el)return;
+  el.textContent=dirHandle?`${dirHandle.name}${lastSync?" · "+new Date(lastSync).toTimeString().slice(0,5):""}`:(lang==="de"?"nicht verbunden":"offline");
+}
+function updateConnectBar(){
+  const el=$("connectBar");if(!el)return;
+  if(dirHandle){el.innerHTML="";return;}
+  el.innerHTML=`<div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-left:4px solid var(--yellow)">
+    <span style="flex:1;font-size:13.5px;color:var(--muted)">${lang==="de"?"Team-Ordner verbinden, um Stellen und Interviews des Teams zu synchronisieren.":"Connect the team folder to sync the team's vacancies and interviews."}</span>
+    <button class="btn" onclick="connectAndSync()">${window._storedDirName?`&#128193; „${esc(window._storedDirName)}“ ${lang==="de"?"verbinden & synchronisieren":"connect & sync"}`:(lang==="de"?"&#128193; Team-Ordner wählen…":"&#128193; Choose team folder…")}</button></div>`;
+}
+async function connectAndSync(){
+  if(!window.showDirectoryPicker){alert(lang==="de"?"Nur Chrome/Edge unterstützen Ordner-Zugriff.":"Only Chrome/Edge support folder access.");return;}
+  try{
+    if(!dirHandle){
+      let h=null;try{h=await idbGet("dir");}catch(_){}
+      if(h){const p=await h.requestPermission({mode:"readwrite"});if(p==="granted")dirHandle=h;}
+      if(!dirHandle){dirHandle=await window.showDirectoryPicker({mode:"readwrite"});try{await idbSet("dir",dirHandle);}catch(_){}}
+    }
+  }catch(_){return;}
+  await syncNow();
+}
+async function syncNow(){
+  if(!dirHandle){connectAndSync();return;}
+  const folderIv=[],folderSt=[];
+  try{
+    for await(const entry of dirHandle.values()){
+      if(entry.kind!=="file"||!entry.name.toLowerCase().endsWith(".json"))continue;
+      try{
+        const j=JSON.parse(await (await entry.getFile()).text());
+        if(j.app==="hr-interview-tool")folderIv.push(Object.assign(j,{_file:entry.name}));
+        else if(j.app==="hr-stelle")folderSt.push(j);
+        else if(j.app==="hr-interview-template"&&j.name){const l=loadTpls().filter(x=>x.name!==j.name);l.push(j);saveTpls(l);}
+      }catch(_){}
+    }
+  }catch(e){alert("Sync: "+e.message);return;}
+  /* Interviews: zwei-Wege-Merge (neuester Zeitstempel gewinnt, lokale fehlende werden hochgeladen) */
+  const map={};
+  loadArchive().forEach(r=>map[resKey(r)]={r,src:"local"});
+  folderIv.forEach(r=>{const k=resKey(r);
+    if(!map[k]||(r.geaendert||r.erstellt||"")>=(map[k].r.geaendert||map[k].r.erstellt||""))map[k]={r,src:"folder"};});
+  const merged=Object.values(map).map(x=>x.r);
+  saveArchive(merged);
+  for(const {r,src} of Object.values(map))if(src==="local")await writeToFolder(r);
+  teamArchiv=merged.slice().sort((a,b)=>(b.kandidat.datum||"").localeCompare(a.kandidat.datum||""));
+  /* Stellen: gleicher Merge */
+  const smap={};
+  stellen.forEach(s=>smap[s.id]={s,src:"local"});
+  folderSt.forEach(s=>{if(!smap[s.id]||(s.geaendert||"")>=(smap[s.id].s.geaendert||""))smap[s.id]={s,src:"folder"};});
+  stellen=Object.values(smap).map(x=>x.s);persistStellen();
+  for(const {s,src} of Object.values(smap))if(src==="local")await writeStelleToFolder(s);
+  lastSync=Date.now();updateSyncInfo();renderStellen();renderTeamArchive();
+  if($("view-decide").classList.contains("active"))renderDecide();
+}
+
+/* ================= Draft (Absturzsicherung) ================= */
+const LS_DRAFT="hrcockpit-draft";
+let draftTimer=null;
+function saveDraft(){
+  if(!ivStart||window._finished)return;
+  const it=items[itemIdx];
+  if(it&&it.t==="q"){const n=$("qNote");if(n)answers[it.q.id].note=n.value;}
+  if(it&&it.t==="form")RFIELDS.forEach(f=>{const el=$("rf_"+f);if(el)rahmen[f]=el.value;});
+  const d={kandidat:{name:$("kName").value,position:$("kPos").value,interviewer:$("kInt").value},
+    selDate,selTime,dauerSel:$("kDauer").value,stelleId:ctx?ctx.stelleId:null,kandId:ctx?ctx.kandId:null,
+    guide,fachFragen,answers,checklists,rahmen,itemIdx,plan:window._plan,
+    elapsed:Math.floor((Date.now()-ivStart)/1000),ts:Date.now()};
+  try{localStorage.setItem(LS_DRAFT,JSON.stringify(d))}catch(_){}
+}
+function saveDraftSoon(){clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,400);}
+function clearDraft(){try{localStorage.removeItem(LS_DRAFT)}catch(_){}}
+function noteInput(v){const it=items[itemIdx];if(it&&it.t==="q"){answers[it.q.id].note=v;saveDraftSoon();}}
+function rahmenInput(f,v){rahmen[f]=v;saveDraftSoon();}
+function tryResumeDraft(){
+  let d;try{d=JSON.parse(localStorage.getItem(LS_DRAFT)||"null")}catch(_){d=null}
+  if(!d||!d.guide)return;
+  if(!confirm(lang==="de"?`Nicht abgeschlossenes Interview mit ${d.kandidat.name} gefunden – fortsetzen?`:`Unfinished interview with ${d.kandidat.name} found – resume?`)){clearDraft();return;}
+  $("kName").value=d.kandidat.name;$("kPos").value=d.kandidat.position;$("kInt").value=d.kandidat.interviewer||"";
+  selDate=d.selDate;selTime=d.selTime;if(d.dauerSel)$("kDauer").value=d.dauerSel;
+  guide=d.guide||[];fachFragen=d.fachFragen||[];answers=d.answers||{};
+  checklists=d.checklists||{start:Array(4).fill(false),ende:Array(4).fill(false)};
+  rahmen=d.rahmen||{};
+  selectedIds=new Set(guide.map(q=>q.id));
+  ctx=d.stelleId?{stelleId:d.stelleId,kandId:d.kandId}:null;
+  const fachQs=fachFragen.filter(f=>f.frage.trim()).map(f=>({id:f.id,phase:"fach",cluster:"Fachliche Kompetenzen",frage:f.frage,hinweis:f.hinweis||"",anker:[]}));
+  items=[{t:"check",ph:"start"}];
+  guide.filter(q=>q.phase==="cv").forEach(q=>items.push({t:"q",q}));
+  fachQs.forEach(q=>items.push({t:"q",q}));
+  guide.filter(q=>q.phase!=="cv").forEach(q=>items.push({t:"q",q}));
+  items.push({t:"form"},{t:"check",ph:"ende"});
+  qItems().forEach(it=>{if(!answers[it.q.id])answers[it.q.id]={rating:null,skipped:false,note:"",sek:0};});
+  window._plan=d.plan||buildPlan();
+  itemIdx=Math.min(d.itemIdx||0,items.length-1);
+  ivStart=Date.now()-(d.elapsed||0)*1000;window._finished=false;
+  stepIdx=2;renderSteps();show("interview");
+  $("ivKandidat").textContent=d.kandidat.name;$("ivPosition").textContent="· "+d.kandidat.position;
+  $("tPlanEnd").textContent=(window._plan[window._plan.length-1]||{}).bis||"";
+  if(tickHandle)clearInterval(tickHandle);
+  tickHandle=setInterval(()=>{if(ivStart)$("tGesamt").textContent=fmt(Math.floor((Date.now()-ivStart)/1000));},1000);
+  renderItem();
+}
+
+/* ================= Beispiel-Kandidat (Demo) ================= */
+function loadDemoCandidate(){
+  guide=pool.map(q=>({...q}));
+  fachFragen=[{id:"FACH1",frage:lang==="de"?"Wie würden Sie unsere bestehende REST-API um einen Caching-Layer erweitern, ohne die Antwortzeiten der Schreibpfade zu verschlechtern?":"How would you extend our existing REST API with a caching layer without degrading write-path latency?",hinweis:""}];
+  ctx=null;selectedIds=new Set(guide.map(q=>q.id));
+  const fachQs=fachFragen.map(f=>({id:f.id,phase:"fach",cluster:"Fachliche Kompetenzen",frage:f.frage,hinweis:f.hinweis||"",anker:[]}));
+  items=[{t:"check",ph:"start"}];
+  guide.filter(q=>q.phase==="cv").forEach(q=>items.push({t:"q",q}));
+  fachQs.forEach(q=>items.push({t:"q",q}));
+  guide.filter(q=>q.phase!=="cv").forEach(q=>items.push({t:"q",q}));
+  items.push({t:"form"},{t:"check",ph:"ende"});
+  checklists={start:Array(4).fill(true),ende:Array(4).fill(true)};
+  const demoRating={"Führungsstärke":3,"Kommunikationsfähigkeit":4,"Problemlösungskompetenz":3,"Teamfähigkeit & Zusammenarbeit":4,"Motivation & Veränderungsbereitschaft":3,"Fachliche Kompetenzen":3};
+  const demoNotes={"Kommunikationsfähigkeit":lang==="de"?"Sehr klare, strukturierte Antworten.":"Very clear, structured answers.",
+    "Motivation & Veränderungsbereitschaft":lang==="de"?"Wirkt authentisch motiviert, konkretes Beispiel.":"Comes across as authentically motivated, concrete example."};
+  answers={};const noted=new Set();let skippedOne=false;
+  qItems().forEach((it,i)=>{
+    const cl=it.q.cluster;
+    let rating=demoRating[cl]??3;
+    if(cl==="Führungsstärke"&&i%3===0)rating=2;
+    const skip=(cl==="Motivation & Veränderungsbereitschaft"&&!skippedOne)?(skippedOne=true):false;
+    const note=(demoNotes[cl]&&!noted.has(cl))?(noted.add(cl),demoNotes[cl]):"";
+    answers[it.q.id]={rating:skip?null:rating,skipped:skip,note,sek:0};
+  });
+  $("kName").value="Alex Beispiel";
+  $("kPos").value=lang==="de"?"Senior Backend Engineer":"Senior Backend Engineer";
+  $("kInt").value=lang==="de"?"Team Recruiting":"Recruiting team";
+  $("cvText").value="";$("jobAd").value=EXAMPLE_AD;
+  const d=new Date();d.setDate(d.getDate()-9);
+  selDate=d.toISOString().slice(0,10);selTime="10:00";
+  window._plan=buildPlan();
+  ivStart=Date.now()-38*60*1000;
+  rahmen={startdatum:lang==="de"?"in 6 Wochen":"in 6 weeks",gehalt:lang==="de"?"im ausgeschriebenen Rahmen":"within the advertised range",arbeitszeit:lang==="de"?"Vollzeit":"Full-time",visum:lang==="de"?"keine Einschränkung":"no restriction",verfuegbar:lang==="de"?"kurzfristig verfügbar":"available on short notice"};
+  finishInterview();
+}
+/* ================= Reset & Init ================= */
+function resetAll(){
+  if(!confirm(lang==="de"?"Neues Interview starten? Nicht gespeicherte Daten gehen verloren.":"Start a new interview? Unsaved data will be lost."))return;
+  resetInterviewState();
+  clearDraft();ctx=null;selTime=null;
+  ["kName","kInt","kPos","mailDraft","mailTo","cvText","jobAd"].forEach(id=>{const el=$(id);if(el)el.value="";});
+  stepIdx=0;renderSteps();
+  goStellen();
+}
+$("sEindruck").addEventListener("input",autoSaveSoon);
+$("sChallenge").addEventListener("input",autoSaveSoon);
+$("sEmpfehlung").addEventListener("change",autoSave);
+try{$("apiKey").value=localStorage.getItem("hr-cockpit-api-key")||""}catch(_){}
+selDate=new Date().toISOString().slice(0,10);
+setPoolStatus(`✓ ${lang==="de"?"Standard-Pool":"Default pool"}: ${pool.length} ${lang==="de"?"Fragen":"questions"}, ${new Set(pool.map(p=>p.cluster)).size} Cluster`,false);
+$("aiSub").textContent=lang==="de"?"optional – schlägt Fragen aus Stellenanzeige & Lebenslauf vor":"optional – suggests questions from job ad & resume";
+applyLang();
+renderStellen();show("stellen");
+(async()=>{
+  try{const h=await idbGet("dir");if(h)window._storedDirName=h.name;}catch(_){}
+  updateConnectBar();updateSyncInfo();
+  tryResumeDraft();
+})();
+</script>
+</body>
+</html>
