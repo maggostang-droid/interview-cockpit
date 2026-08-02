@@ -15,8 +15,7 @@ verlassen.**
 > Bericht.
 > *Statische Seite auf GitHub Pages, kein Cold-Start.*
 
-<!-- TODO(Marco): Screenshot einfuegen, dann diese Zeile durch das Bild ersetzen:
-     ![HR Interview Cockpit: Auswertung mit Kompetenz-Radar und Cluster-Bewertung](docs/demo.png) -->
+![HR Interview Cockpit: ausgefuellte Beispiel-Auswertung mit Kennzahlen, Kompetenz-Radar und Bewertung nach Cluster](docs/demo.png)
 
 <details>
 <summary><b>🇬🇧 English summary</b></summary>

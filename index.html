@@ -491,11 +491,18 @@ function applyChartDarkDefaults(){
   if(typeof Chart==="undefined"||Chart.__marcoOsDark)return;
   Chart.defaults.color="#c9c5e8";
   Chart.defaults.borderColor="rgba(167,139,250,.22)";
-  if(Chart.defaults.scales&&Chart.defaults.scales.r){
-    Chart.defaults.scales.r.grid={color:"rgba(167,139,250,.22)"};
-    Chart.defaults.scales.r.angleLines={color:"rgba(167,139,250,.22)"};
-    Chart.defaults.scales.r.pointLabels={color:"#e7e4f5"};
-    Chart.defaults.scales.r.ticks={backdropColor:"transparent",color:"#c9c5e8"};
+  const r=Chart.defaults.scales&&Chart.defaults.scales.r;
+  if(r){
+    // Einzelne Eigenschaften setzen statt der Objekte: ersetzt man grid/ticks
+    // komplett, geht das Zusammenfuehren mit den Optionen der Diagramme
+    // verloren und Chart.js faellt fuer den Rest auf helle Standardwerte
+    // zurueck (sichtbar als graue Kaestchen hinter den Skalenzahlen).
+    r.grid.color="rgba(167,139,250,.22)";
+    r.angleLines.color="rgba(167,139,250,.22)";
+    r.pointLabels.color="#e7e4f5";
+    r.ticks.color="#c9c5e8";
+    r.ticks.backdropColor="transparent";
+    r.ticks.showLabelBackdrop=false;
   }
   Chart.__marcoOsDark=true;
 }
@@ -1258,7 +1265,7 @@ function finishInterview(){
   radarObj=new Chart($("radarChart"),{type:"radar",
     data:{labels:Object.keys(cavg),datasets:[{label:$("kName").value,data:Object.values(cavg).map(v=>v??0),
       backgroundColor:"rgba(167,139,250,.18)",borderColor:"#a78bfa",pointBackgroundColor:"#a78bfa",borderWidth:2}]},
-    options:{responsive:true,maintainAspectRatio:false,animation:false,scales:{r:{min:0,max:4,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
+    options:{responsive:true,maintainAspectRatio:false,animation:false,scales:{r:{min:0,max:4,ticks:{stepSize:1,showLabelBackdrop:false,backdropColor:"transparent",color:"#c9c5e8"}}},plugins:{legend:{display:false}}}});
   $("sClusterTable").innerHTML=`<tr><th>${t("cluster")}</th><th>&Oslash;</th><th>n</th></tr>`+
     Object.entries(cavg).map(([c,v])=>{
       const n=qs.filter(it=>it.q.cluster===c&&answers[it.q.id].rating!=null).length;
@@ -1722,7 +1729,7 @@ function renderDecide(){
       data:{labels:allClusters,datasets:cands.map((c,i)=>{
         const col=CLUSTER_COLORS[i%CLUSTER_COLORS.length];
         return{label:c.k.name,data:allClusters.map(cl=>c.r.clusterAvg[cl]??0),backgroundColor:col+"22",borderColor:col,pointBackgroundColor:col,borderWidth:2};})},
-      options:{responsive:true,maintainAspectRatio:false,animation:false,scales:{r:{min:0,max:4,ticks:{stepSize:1}}},plugins:{legend:{position:"bottom"}}}});
+      options:{responsive:true,maintainAspectRatio:false,animation:false,scales:{r:{min:0,max:4,ticks:{stepSize:1,showLabelBackdrop:false,backdropColor:"transparent",color:"#c9c5e8"}}},plugins:{legend:{position:"bottom"}}}});
   }
   $("decTable").innerHTML=cands.length?`<table><tr><th>${t("cluster")}</th>${cands.map(c=>`<th>${esc(c.k.name)}</th>`).join("")}</tr>`+
     allClusters.map(cl=>`<tr><td>${esc(cl)}</td>${cands.map(c=>{
