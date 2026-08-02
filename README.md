@@ -1,128 +1,121 @@
 # HR Interview Cockpit
 
-Ein Single-File-Tool für strukturierte Einstellungsinterviews — von der
-Stellenanzeige über den Fragenpool bis zum Live-Cockpit mit Timer,
-Phasen-Tracking, 4er-Verhaltensanker-Bewertung und Kompetenz-Radar.
-Komplett client-seitig: kein Backend, kein Build-Step, keine Installation.
+**Führt strukturierte Einstellungsinterviews von der Stellenanzeige bis zum Bericht: ein
+einziges HTML-File ohne Backend und ohne Build-Step, damit Kandidatendaten den Rechner nie
+verlassen.**
 
-Portfolio-Projekt von Marco Stang für Bewerbungen auf AI/KI-Rollen.
+![Vanilla JS](https://img.shields.io/badge/Vanilla_JS-kein_Build--Step-a78bfa?style=flat-square&labelColor=0a0716)
+![Single File](https://img.shields.io/badge/Single_File-~2.000_Zeilen-a78bfa?style=flat-square&labelColor=0a0716)
+![Client-side](https://img.shields.io/badge/Daten-bleiben_lokal-a78bfa?style=flat-square&labelColor=0a0716)
+[![Live-Demo](https://img.shields.io/badge/▶_Live--Demo-GitHub_Pages-0a0716?style=flat-square&labelColor=a78bfa)](https://maggostang-droid.github.io/interview-cockpit/)
 
-<!-- TODO(Marco): Screenshot der Demo hier einfügen:
-     ![HR Interview Cockpit — Live-Cockpit mit Kompetenz-Radar](docs/demo.png) -->
+> **▶ [Demo ausprobieren](https://maggostang-droid.github.io/interview-cockpit/)**
+> Klick auf dem Startbildschirm „Beispiel-Auswertung ansehen": Das lädt ein komplett
+> ausgefülltes Interview mit fiktiver Stelle, fiktivem Kandidaten, Kompetenz-Radar und
+> Bericht.
+> *Statische Seite auf GitHub Pages, kein Cold-Start.*
 
-## Live-Demo
+<!-- TODO(Marco): Screenshot einfuegen, dann diese Zeile durch das Bild ersetzen:
+     ![HR Interview Cockpit: Auswertung mit Kompetenz-Radar und Cluster-Bewertung](docs/demo.png) -->
 
-👉 **[maggostang-droid.github.io/interview-cockpit](https://maggostang-droid.github.io/interview-cockpit/)**
+<details>
+<summary><b>🇬🇧 English summary</b></summary>
 
-Läuft als statische Seite auf GitHub Pages — kein Cold-Start, sofort da.
-Der schnellste Einstieg: auf dem Startbildschirm **"Beispiel-Auswertung
-ansehen"** klicken, das lädt ein komplett ausgefülltes Beispiel-Interview
-(fiktive Stelle, fiktiver Kandidat) inklusive Radar-Chart und Bericht.
+A single-file, client-side tool for running structured hiring interviews: job and CV
+intake (PDF text extraction in the browser), an importable question pool (xlsx), a live
+cockpit with timer, five interview phases and 4-point behavioural-anchor ratings, plus a
+competency radar and an exportable report. No backend and no build step, so candidate data
+never leaves the machine. Sanitised portfolio version with synthetic content only. Full
+write-up in German below.
+</details>
 
-## Was das Tool macht
+---
 
-Ein kompletter Interview-Workflow in einer Datei:
+## In 30 Sekunden
 
-1. **Vorbereiten.** Stellen-Übersicht und Kandidatendaten anlegen; der
-   Lebenslauf wird als PDF importiert und der Text direkt im Browser
-   extrahiert (pdf.js). Ein eigener Fragenpool lässt sich als
-   xlsx-Datei importieren (SheetJS).
-2. **Planen.** Termin im eingebauten Kalender wählen.
-3. **Interviewen.** Das Live-Cockpit führt durch fünf Phasen (Begrüßung &
-   Smalltalk → Vorstellung der Interviewer & des Ablaufs → Fachfragen →
-   Verhaltensfragen mit CV-Bezug → Abschluss & Ausblick) — mit Timer,
-   Phasen-Tracking und Bewertung jeder Frage auf einer 4er-Skala mit
-   Verhaltensankern.
-4. **Entscheiden.** Auswertung nach Kompetenz-Clustern, Kompetenz-Radar
-   (Chart.js), Gesamteindruck & Empfehlung, exportierbarer
-   Interviewbericht. Ein optionaler **KI-Copilot** schlägt auf Basis von
-   Stellenanzeige + CV zusätzliche Fragen vor.
+Ein kompletter Interview-Workflow in einer Datei. Stelle und Lebenslauf werden erfasst, der
+CV wird als PDF importiert und direkt im Browser in Text umgewandelt. Ein eigener
+Fragenpool lässt sich als xlsx laden. Im Live-Cockpit führt das Tool durch fünf Phasen
+(Begrüßung, Vorstellung des Ablaufs, Fachfragen, Verhaltensfragen mit CV-Bezug, Abschluss),
+mit Timer und Bewertung jeder Frage auf einer 4er-Skala mit Verhaltensankern. Am Ende
+stehen Auswertung nach Kompetenz-Clustern, ein Kompetenz-Radar und ein exportierbarer
+Bericht. Die Oberfläche ist deutsch und englisch.
 
-Die Oberfläche ist zweisprachig (Deutsch/Englisch).
+## Die zentrale Entscheidung: es gibt keinen Server, an den Daten gehen könnten
 
-## Die Architektur-Entscheidung: alles bleibt im Browser
+Interviewdaten gehören zum Sensibelsten, was ein HR-Prozess erzeugt: Lebensläufe,
+Bewertungen, Einstellungsempfehlungen. Statt das über Zugriffsrechte auf einem Server zu
+lösen, ist hier die Architektur selbst die Antwort. Alle Daten liegen im `localStorage` des
+Browsers oder, über die File System Access API, in einem lokalen Ordner, den der Nutzer
+selbst wählt. Es existiert kein Backend, das sie speichern könnte.
 
-Interviewdaten sind so ziemlich das Sensibelste, was ein HR-Prozess
-erzeugt — Lebensläufe, Bewertungen, Einstellungsempfehlungen. Die
-zentrale Designentscheidung dieses Projekts ist deshalb radikal:
-**es gibt keinen Server, an den diese Daten überhaupt geschickt werden
-könnten.**
+Die einzige Ausnahme ist der optionale KI-Copilot für Fragenvorschläge. Er ruft
+`api.anthropic.com` direkt aus dem Browser auf, mit einem API-Key, den der Nutzer selbst
+einfügt und der nur in seinem Browser liegt. Kein Proxy-Server sieht Key oder Daten. Diese
+Konstruktion braucht den Header `anthropic-dangerous-direct-browser-access`, und der Name
+ist Programm: Sie ist für ein lokales Einzelnutzer-Tool vertretbar und für eine öffentliche
+Mehrbenutzer-App nicht.
 
-- Alle Daten (Fragenpool, Kandidaten, gespeicherte Interviews) liegen im
-  `localStorage` des Browsers oder — per File System Access API
-  (`showDirectoryPicker`) — in einem lokalen Ordner, den man selbst wählt.
-- Die einzige Ausnahme ist der optionale KI-Copilot: er ruft
-  `api.anthropic.com` **direkt aus dem Browser** auf (mit dem
-  `anthropic-dangerous-direct-browser-access`-Header), mit einem API-Key,
-  den man selbst einfügt und der nur im eigenen Browser gespeichert wird.
-  Kein Proxy-Server, der den Key oder die Daten sehen könnte — der
-  Trade-off: diese Konstruktion ist nur für ein lokales
-  Einzelnutzer-Tool vertretbar, nie für eine öffentliche Mehrbenutzer-App
-  (siehe Limitierungen).
+<details>
+<summary><b>▸ Deep Dive: Herkunft und Datenschutz-Abgrenzung</b></summary>
 
-```mermaid
-flowchart LR
-    A[Stellenanzeige + CV-PDF] -->|pdf.js: Text-Extraktion| B[Intake]
-    P[Fragenpool xlsx] -->|SheetJS-Import| B
-    B --> C[Live-Cockpit<br/>5 Phasen, Timer,<br/>4er-Verhaltensanker]
-    C --> D[Auswertung<br/>Cluster + Kompetenz-Radar<br/>Chart.js]
-    D --> E[Interviewbericht]
-    B -.optional.-> K[KI-Copilot<br/>Claude API, direkt<br/>aus dem Browser]
-    K -.Fragenvorschläge.-> C
-    B & C & D <-->|localStorage /<br/>File System Access API| S[(Browser-Speicher /<br/>lokaler Ordner)]
-```
+Ursprünglich als privates Tool während eines realen Bewerbungsprozesses bei Festo gebaut,
+ohne Anstellungsverhältnis. Dies ist eine bereinigte, umbenannte Fassung mit ausschließlich
+synthetischen Inhalten: fiktive Stellenanzeige, fiktiver Beispiel-Kandidat, selbst
+geschriebene generische Fragensammlung. Keine echten Kandidatendaten, keine echten
+Stellenausschreibungen, keine Kompetenzmodelle Dritter.
 
-## Zahlen & Umfang
+Drei Bibliotheken werden per CDN geladen: SheetJS für den xlsx-Import, Chart.js für das
+Kompetenz-Radar und pdf.js für die CV-Textextraktion.
+</details>
 
-Ehrliche Einordnung statt Feature-Marketing: das ist ein kompaktes
-Werkzeug, kein Produkt.
+## Architektur
 
-- **Eine einzige HTML-Datei**: ~2.000 Zeilen / ~140 KB, Vanilla
-  JS/HTML/CSS ohne Framework.
-- **3 Bibliotheken** via CDN: SheetJS (xlsx-Import), Chart.js
-  (Kompetenz-Radar), pdf.js (CV-Text-Extraktion).
-- **5 Interview-Phasen**, Bewertung auf 4er-Skala mit Verhaltensankern,
-  Auswertung pro Kompetenz-Cluster.
-- Keine automatisierten Tests, keine Nutzungs-Metriken — verifizierbar
-  ist das Tool über die Beispiel-Auswertung in der Live-Demo.
+![Intake, Live-Cockpit und Auswertung laufen im Browser; Daten bleiben in localStorage oder einem lokalen Ordner, der KI-Copilot ist optional](docs/architecture.svg)
 
-## Quickstart
+Der gestrichelte Pfad zum Speicher ist der entscheidende: Er endet im Browser, nicht in
+einer Cloud. Und der KI-Copilot ist optional, ohne ihn funktioniert der gesamte Workflow.
+
+## Was es kann, und was nicht
+
+Ehrliche Einordnung statt Feature-Marketing: Das ist ein kompaktes Werkzeug, kein Produkt.
+
+| Größe | Wert |
+|---|---|
+| Umfang | eine HTML-Datei, rund 2.000 Zeilen, etwa 140 KB |
+| Abhängigkeiten | 3 Bibliotheken per CDN, kein Framework, kein Build |
+| Interview-Phasen | 5, mit Timer und Phasen-Tracking |
+| Bewertung | 4er-Skala mit Verhaltensankern, Auswertung pro Cluster |
+| Automatisierte Tests | **keine** |
+
+**Was dieses Projekt nicht ist:** Die fehlenden Tests sind bei rund 2.000 Zeilen in einer
+Datei die größte technische Schuld des Projekts, verifizierbar ist es derzeit nur über die
+Beispiel-Auswertung in der Demo. Es ist außerdem ein Einzelnutzer-Tool und gerätegebunden:
+kein Account, kein Sync, keine gemeinsame Bewertung durch mehrere Interviewer. Der
+`localStorage` hat Größenlimits und verschwindet mit den Browserdaten, weshalb der Export
+in einen lokalen Ordner der stabilere Weg ist. Und es gibt keine ATS-Schnittstelle.
+
+## Selbst ausprobieren
+
+Es gibt nichts zu installieren. Entweder die Demo oben öffnen oder:
 
 ```bash
-# nichts zu installieren — entweder die Live-Demo öffnen oder:
 git clone https://github.com/maggostang-droid/interview-cockpit.git
-# und index.html im Browser öffnen
+# danach index.html im Browser öffnen
 ```
 
-## Herkunft & Datenherkunft
+---
 
-Ursprünglich als privates Tool während eines realen Bewerbungsprozesses
-bei Festo gebaut (kein Anstellungsverhältnis). Dies ist eine bereinigte,
-umbenannte Fassung mit ausschließlich synthetischen Inhalten: fiktive
-Stellenanzeige, fiktiver Beispiel-Kandidat, selbst geschriebene generische
-Fragensammlung. Keine echten Kandidatendaten, Stellenausschreibungen oder
-Kompetenzmodelle Dritter.
+```console
+marco@portfolio:~$ open marco-os --project hr-interview-cockpit
+```
 
-## Limitierungen
+**[▸ Dieses Projekt in MARCO.OS öffnen](https://maggostang-droid.github.io/marco-os/#hr-interview-cockpit)**,
+dem interaktiven Portfolio von Marco Stang.
 
-- **Einzelnutzer-Tool, gerätegebunden**: Daten liegen im Browser-Speicher
-  des einen Rechners — kein Account, kein Sync, keine Zusammenarbeit
-  mehrerer Interviewer an derselben Bewertung.
-- **Der Browser-Direktaufruf der Claude-API** ist eine bewusste
-  Einzelnutzer-Abkürzung: für jede Mehrbenutzer- oder gehostete Variante
-  müsste ein Backend-Proxy den API-Key kapseln.
-- **Keine automatisierten Tests** — bei ~2.000 Zeilen in einer Datei die
-  größte technische Schuld des Projekts.
-- `localStorage` hat Größen-Limits und wird beim Löschen der Browserdaten
-  mit entfernt — der lokale Ordner-Export ist dafür der stabilere Weg.
-- Kein ATS-Import/-Export (kein Schnittstellen-Anspruch).
+**Schwesterprojekte:**
+[SQL Copilot](https://github.com/maggostang-droid/sql-copilot) (LangGraph-Agent mit Guardrails) ·
+[Review Risk Predictor](https://github.com/maggostang-droid/review-risk-predictor) (erklärbares ML, React/FastAPI) ·
+[Ask-Marco Assistant](https://github.com/maggostang-droid/ask-marco-assistant) (Chat über alle Projekte)
 
-## Portfolio-Kontext
-
-Dieses Projekt ist Teil von **[MARCO.OS](https://maggostang-droid.github.io/marco-os/)**,
-dem interaktiven Portfolio von Marco Stang — dort lässt sich diese Demo
-direkt im Projektfenster ausprobieren. Schwesterprojekte:
-
-- [SQL Copilot](https://github.com/maggostang-droid/sql-copilot) — LangGraph-Agent für Text-to-SQL mit Guardrails und Selbstkorrektur
-- [Review Risk Predictor](https://github.com/maggostang-droid/review-risk-predictor) — erklärbare ML-Risikovorhersage (React/FastAPI)
-- [Ask-Marco Assistant](https://github.com/maggostang-droid/ask-marco-assistant) — Chat, der alle Portfolio-Projekte kennt (Context-Stuffing + MCP-Server)
+<sub>Marco Stang · Dr.-Ing. · [LinkedIn](https://www.linkedin.com/in/marco-stang) · stang.marco@t-online.de · MIT-Lizenz</sub>

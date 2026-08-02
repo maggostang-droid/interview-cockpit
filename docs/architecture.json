@@ -1,0 +1,92 @@
+{
+  "title": "app://hr-interview-cockpit · architecture",
+  "alt": "Intake, Live-Cockpit und Auswertung laufen im Browser; Daten bleiben in localStorage oder einem lokalen Ordner, der KI-Copilot ist optional",
+  "accent": "#a78bfa",
+  "width": 920,
+  "height": 314,
+  "nodes": [
+    {
+      "id": "ki",
+      "x": 254,
+      "y": 52,
+      "w": 200,
+      "h": 54,
+      "label": "KI-Copilot",
+      "sub": "Claude API, optional"
+    },
+    {
+      "id": "intake",
+      "x": 24,
+      "y": 134,
+      "w": 200,
+      "h": 58,
+      "label": "Intake",
+      "sub": "Stelle, CV, Fragenpool"
+    },
+    {
+      "id": "cock",
+      "x": 254,
+      "y": 134,
+      "w": 200,
+      "h": 58,
+      "label": "Live-Cockpit",
+      "sub": "5 Phasen, 4er-Skala",
+      "emphasis": true
+    },
+    {
+      "id": "eval",
+      "x": 484,
+      "y": 134,
+      "w": 200,
+      "h": 58,
+      "label": "Auswertung",
+      "sub": "Cluster + Radar"
+    },
+    {
+      "id": "rep",
+      "x": 714,
+      "y": 134,
+      "w": 170,
+      "h": 58,
+      "label": "Bericht"
+    },
+    {
+      "id": "store",
+      "x": 254,
+      "y": 226,
+      "w": 430,
+      "h": 58,
+      "label": "localStorage / lokaler Ordner",
+      "sub": "nichts verlaesst den Browser"
+    }
+  ],
+  "edges": [
+    {
+      "from": "intake",
+      "to": "cock"
+    },
+    {
+      "from": "cock",
+      "to": "eval"
+    },
+    {
+      "from": "eval",
+      "to": "rep"
+    },
+    {
+      "from": "ki",
+      "to": "cock",
+      "dashed": true
+    },
+    {
+      "from": "cock",
+      "to": "store",
+      "dashed": true
+    },
+    {
+      "from": "eval",
+      "to": "store",
+      "dashed": true
+    }
+  ]
+}

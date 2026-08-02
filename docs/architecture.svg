@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 314"
+     width="920" height="314" role="img" aria-label="Intake, Live-Cockpit und Auswertung laufen im Browser; Daten bleiben in localStorage oder einem lokalen Ordner, der KI-Copilot ist optional">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+            orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#a78bfa"/>
+    </marker>
+  </defs>
+  <rect x="0.5" y="0.5" width="919" height="313" rx="14"
+        fill="#0a0716" stroke="#a78bfa" stroke-width="1" opacity="1"/>
+  <rect x="0.5" y="0.5" width="919" height="36" rx="14" fill="#140f24"/>
+  <rect x="0.5" y="22" width="919" height="14" fill="#140f24"/>
+  <line x1="0.5" y1="36" x2="919.5" y2="36" stroke="#a78bfa" stroke-width="1" opacity="0.45"/>
+  <circle cx="20" cy="18" r="5" fill="#ff5f57"/>
+  <circle cx="38" cy="18" r="5" fill="#febc2e"/>
+  <circle cx="56" cy="18" r="5" fill="#28c840"/>
+  <text x="76" y="23" fill="#c9c5e8" font-family="JetBrains Mono, SFMono-Regular, Consolas, monospace" font-size="12"
+        opacity="0.9">app://hr-interview-cockpit · architecture</text>
+
+  <path d="M 224 163 L 254 163" fill="none" stroke="#a78bfa" stroke-width="1.8"
+        marker-end="url(#arrow)" opacity="0.9"/>
+  
+  <path d="M 454 163 L 484 163" fill="none" stroke="#a78bfa" stroke-width="1.8"
+        marker-end="url(#arrow)" opacity="0.9"/>
+  
+  <path d="M 684 163 L 714 163" fill="none" stroke="#a78bfa" stroke-width="1.8"
+        marker-end="url(#arrow)" opacity="0.9"/>
+  
+  <path d="M 354 106 L 354 134" fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-dasharray="6 5"
+        marker-end="url(#arrow)" opacity="0.9"/>
+  
+  <path d="M 390.25 192 L 432.75 226" fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-dasharray="6 5"
+        marker-end="url(#arrow)" opacity="0.9"/>
+  
+  <path d="M 547.75 192 L 505.25 226" fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-dasharray="6 5"
+        marker-end="url(#arrow)" opacity="0.9"/>
+  
+
+  <g>
+    <rect x="254" y="52" width="200" height="54" rx="10"
+          fill="#140f24" stroke="#06040d" stroke-width="3"/>
+    <rect x="254" y="52" width="200" height="54" rx="10"
+          fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.85"/>
+    <text x="354" y="76" fill="#e7e4f5" font-family="JetBrains Mono, SFMono-Regular, Consolas, monospace"
+          font-size="14" font-weight="600" text-anchor="middle">KI-Copilot</text>
+    <text x="354" y="94" fill="#c9c5e8" font-family="JetBrains Mono, SFMono-Regular, Consolas, monospace" font-size="11" text-anchor="middle" opacity="0.85">Claude API, optional</text>
+  </g>
+  <g>
+    <rect x="24" y="134" width="200" height="58" rx="10"
+          fill="#140f24" stroke="#06040d" stroke-width="3"/>
+    <rect x="24" y="134" width="200" height="58" rx="10"
+          fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.85"/>
+    <text x="124" y="160" fill="#e7e4f5" font-family="JetBrains Mono, SFMono-Regular, Consolas, monospace"
+          font-size="14" font-weight="600" text-anchor="middle">Intake</text>
+    <text x="124" y="178" fill="#c9c5e8" font-family="JetBrains Mono, SFMono-Regular, Consolas, monospace" font-size="11" text-anchor="middle" opacity="0.85">Stelle, CV, Fragenpool</text>
+  </g>
+  <g>
+    <rect x="254" y="134" width="200" height="58" rx="10"
+          fill="#a78bfa" stroke="#06040d" stroke-width="3"/>
+    <rect x="254" y="134" width="200" height="58" rx="10"
+          fill="none" stroke="#06040d" stroke-width="1.5" opacity="1"/>
+    <text x="354" y="160" fill="#06040d" font-family="JetBrains Mono, SFMono-Regular, Consolas, monospace"
+          font-size="14" font-weight="600" text-anchor="middle">Live-Cockpit</text>
+    <text x="354" y="178" fill="#06040d" font-family="JetBrains Mono, SFMono-Regular, Consolas, monospace" font-size="11" text-anchor="middle" opacity="0.85">5 Phasen, 4er-Skala</text>
+  </g>
+  <g>
+    <rect x="484" y="134" width="200" height="58" rx="10"
+          fill="#140f24" stroke="#06040d" stroke-width="3"/>
+    <rect x="484" y="134" width="200" height="58" rx="10"
+          fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.85"/>
+    <text x="584" y="160" fill="#e7e4f5" font-family="JetBrains Mono, SFMono-Regular, Consolas, monospace"
+          font-size="14" font-weight="600" text-anchor="middle">Auswertung</text>
+    <text x="584" y="178" fill="#c9c5e8" font-family="JetBrains Mono, SFMono-Regular, Consolas, monospace" font-size="11" text-anchor="middle" opacity="0.85">Cluster + Radar</text>
+  </g>
+  <g>
+    <rect x="714" y="134" width="170" height="58" rx="10"
+          fill="#140f24" stroke="#06040d" stroke-width="3"/>
+    <rect x="714" y="134" width="170" height="58" rx="10"
+          fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.85"/>
+    <text x="799" y="168" fill="#e7e4f5" font-family="JetBrains Mono, SFMono-Regular, Consolas, monospace"
+          font-size="14" font-weight="600" text-anchor="middle">Bericht</text>
+    
+  </g>
+  <g>
+    <rect x="254" y="226" width="430" height="58" rx="10"
+          fill="#140f24" stroke="#06040d" stroke-width="3"/>
+    <rect x="254" y="226" width="430" height="58" rx="10"
+          fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.85"/>
+    <text x="469" y="252" fill="#e7e4f5" font-family="JetBrains Mono, SFMono-Regular, Consolas, monospace"
+          font-size="14" font-weight="600" text-anchor="middle">localStorage / lokaler Ordner</text>
+    <text x="469" y="270" fill="#c9c5e8" font-family="JetBrains Mono, SFMono-Regular, Consolas, monospace" font-size="11" text-anchor="middle" opacity="0.85">nichts verlaesst den Browser</text>
+  </g>
+</svg>
