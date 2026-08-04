@@ -7,9 +7,9 @@ verlassen.**
 ![Vanilla JS](https://img.shields.io/badge/Vanilla_JS-kein_Build--Step-a78bfa?style=flat-square&labelColor=0a0716)
 ![Single File](https://img.shields.io/badge/Single_File-~2.000_Zeilen-a78bfa?style=flat-square&labelColor=0a0716)
 ![Client-side](https://img.shields.io/badge/Daten-bleiben_lokal-a78bfa?style=flat-square&labelColor=0a0716)
-[![Live-Demo](https://img.shields.io/badge/▶_Live--Demo-GitHub_Pages-0a0716?style=flat-square&labelColor=a78bfa)](https://maggostang-droid.github.io/interview-cockpit/)
+[![Live-Demo](https://img.shields.io/badge/▶_Live--Demo-GitHub_Pages-0a0716?style=flat-square&labelColor=a78bfa)](https://marco-stang.github.io/interview-cockpit/)
 
-> **▶ [Demo ausprobieren](https://maggostang-droid.github.io/interview-cockpit/)**
+> **▶ [Demo ausprobieren](https://marco-stang.github.io/interview-cockpit/)**
 > Klick auf dem Startbildschirm „Beispiel-Auswertung ansehen": Das lädt ein komplett
 > ausgefülltes Interview mit fiktiver Stelle, fiktivem Kandidaten, Kompetenz-Radar und
 > Bericht.
@@ -99,7 +99,7 @@ in einen lokalen Ordner der stabilere Weg ist. Und es gibt keine ATS-Schnittstel
 Es gibt nichts zu installieren. Entweder die Demo oben öffnen oder:
 
 ```bash
-git clone https://github.com/maggostang-droid/interview-cockpit.git
+git clone https://github.com/marco-stang/interview-cockpit.git
 # danach index.html im Browser öffnen
 ```
 
@@ -109,12 +109,12 @@ git clone https://github.com/maggostang-droid/interview-cockpit.git
 marco@portfolio:~$ open marco-os --project hr-interview-cockpit
 ```
 
-**[▸ Dieses Projekt in MARCO.OS öffnen](https://maggostang-droid.github.io/marco-os/#hr-interview-cockpit)**,
+**[▸ Dieses Projekt in MARCO.OS öffnen](https://marco-stang.github.io/#hr-interview-cockpit)**,
 dem interaktiven Portfolio von Marco Stang.
 
 **Schwesterprojekte:**
-[SQL Copilot](https://github.com/maggostang-droid/sql-copilot) (LangGraph-Agent mit Guardrails) ·
-[Review Risk Predictor](https://github.com/maggostang-droid/review-risk-predictor) (erklärbares ML, React/FastAPI) ·
-[Ask-Marco Assistant](https://github.com/maggostang-droid/ask-marco-assistant) (Chat über alle Projekte)
+[SQL Copilot](https://github.com/marco-stang/sql-copilot) (LangGraph-Agent mit Guardrails) ·
+[Review Risk Predictor](https://github.com/marco-stang/review-risk-predictor) (erklärbares ML, React/FastAPI) ·
+[Ask-Marco Assistant](https://github.com/marco-stang/ask-marco-assistant) (Chat über alle Projekte)
 
 <sub>Marco Stang · Dr.-Ing. · [LinkedIn](https://www.linkedin.com/in/marco-stang) · stang.marco@t-online.de · MIT-Lizenz</sub>
